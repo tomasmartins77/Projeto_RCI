@@ -165,13 +165,19 @@ int main(int argc, char *argv[])
             FD_SET(client_fds[i], &rfds_list);
             sprintf(buffer, "NEW %s %s %s\n", this_node.my_node.id, this_node.my_node.ip, this_node.my_node.port);
             write(client_fds[i], buffer, strlen(buffer));
-            printf("message sent\n");
+            printf("message sent %s\n", buffer);
         }
-        if (FD_ISSET(client_fds[i], &rfds_list) == 1)
+        /*
+        for (int x = 0; x < i; x++)
         {
-            read(client_fds[i], buffer, 1024);
-            fprintf(stdout, "%s\n", buffer);
+            if (FD_ISSET(client_fds[x], &rfds_list) == 1)
+            {
+                read(client_fds[x], buffer, 1024);
+                fprintf(stdout, "%s\n", buffer);
+            }
         }
+        */
+
         i++;
     }
     return 0;
@@ -197,8 +203,8 @@ int handle_join(char *net, char *id, char *ip, char *port)
     if (strcmp(UDP_server_message(message, 1), "OKREG") == 0)
         flag = 1;
     strcpy(this_node.my_node.id, id);
-    strcpy(this_node.my_node.id, ip);
-    strcpy(this_node.my_node.id, port);
+    strcpy(this_node.my_node.ip, ip);
+    strcpy(this_node.my_node.port, port);
 
     if (count > 0)
         tcp_connect(count);
