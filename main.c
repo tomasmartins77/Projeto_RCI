@@ -11,6 +11,11 @@
 #include <netdb.h>
 #include <time.h>
 
+#define PORT 8081
+#define MAX_NODES 99
+#define SERVER_IP "193.136.138.142" // Change to the IP address of your server
+#define SERVER_PORT 59000           // Change to the port number of your server
+
 typedef struct node
 {
     char id[3];
@@ -19,16 +24,11 @@ typedef struct node
 } node_t;
 typedef struct our_node
 {
-    char VE[3];
-    char VB[3];
-    char VI[200];
+    int VE;
+    int VB;
+    int VI[MAX_NODES];
     struct node my_node;
 } our_node;
-
-#define PORT 8081
-#define MAX_NODES 99
-#define SERVER_IP "193.136.138.142" // Change to the IP address of your server
-#define SERVER_PORT 59000           // Change to the port number of your server
 
 char buffer[1024];
 
@@ -68,6 +68,7 @@ void tcp_connect(int num_nodes);
 
 node_t nodes[MAX_NODES];
 our_node this_node;
+int client_fds[MAX_NODES];
 
 int main(int argc, char *argv[])
 {
@@ -79,9 +80,16 @@ int main(int argc, char *argv[])
     char buff[255];
     char message[10], arg1[9], arg2[5], bootid[7], bootIP[7], bootTCP[8];
 
-    int server_fd, client_fds[MAX_NODES], max_fd;
+    int server_fd, max_fd;
     struct sockaddr_in server_addr, client_addr;
     socklen_t cli_addr_size = sizeof(client_addr);
+
+    inicialize_node();
+
+    for (int i = 0; i < MAX_NODES; i++)
+    {
+        client_fds[i] = -1;
+    }
 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
@@ -157,28 +165,33 @@ int main(int argc, char *argv[])
         }
         if (FD_ISSET(server_fd, &rfds_list) == 1)
         {
+            for (i = 0; i < MAX_NODES; i++)
+            {
+                if (client_fds[i] != -1)
+                    break;
+            }
             if ((client_fds[i] = accept(server_fd, (struct sockaddr *)&client_addr, &cli_addr_size)) < 0)
             {
                 perror("accept");
                 exit(EXIT_FAILURE);
             }
             FD_SET(client_fds[i], &rfds_list);
-            sprintf(buffer, "NEW %s %s %s\n", this_node.my_node.id, this_node.my_node.ip, this_node.my_node.port);
-            write(client_fds[i], buffer, strlen(buffer));
-            printf("message sent %s\n", buffer);
         }
-        /*
         for (int x = 0; x < i; x++)
         {
             if (FD_ISSET(client_fds[x], &rfds_list) == 1)
             {
+                memset(buffer, 0, 1024);
                 read(client_fds[x], buffer, 1024);
                 fprintf(stdout, "%s\n", buffer);
+
+                if (strcmp(buffer, "NEW") == 0)
+                {
+                    sprintf(buffer, "EXTERN %s %s %s\n", nodes[this_node.VE].id, nodes[this_node.VE].ip, nodes[this_node.VE].port);
+                    write(client_fds[x], buffer, 1024);
+                }
             }
         }
-        */
-
-        i++;
     }
     return 0;
 }
@@ -189,6 +202,7 @@ int handle_join(char *net, char *id, char *ip, char *port)
     char new_id[3], right_node[3];
     char message[50];
     int count = node_list(net, 0);
+    char *endptr;
 
     if (count > 0)
     {
@@ -205,7 +219,9 @@ int handle_join(char *net, char *id, char *ip, char *port)
     strcpy(this_node.my_node.id, id);
     strcpy(this_node.my_node.ip, ip);
     strcpy(this_node.my_node.port, port);
+    long num = strtol(id, &endptr, 10);
 
+    this_node.VB = (int)num;
     if (count > 0)
         tcp_connect(count);
 
@@ -343,9 +359,8 @@ char *UDP_server_message(const char *message, int print)
     int sockfd;
     struct sockaddr_in server_addr;
     if ((sockfd = socket(AF_INET, SOCK_DGRAM, 0)) < 0)
-    {
         exit(1);
-    }
+
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
@@ -370,14 +385,18 @@ char *UDP_server_message(const char *message, int print)
     return buffer;
 }
 
-void inicialize_node(node_t *nodes)
+void inicialize_node()
 {
-    strncpy(nodes->id, "00", sizeof(nodes->id) - 1);
+    strncpy(nodes->id, "000", sizeof(nodes->id) - 1);
     strncpy(nodes->ip, "000", sizeof(nodes->ip) - 1);
     strncpy(nodes->port, "00000", sizeof(nodes->port) - 1);
     nodes->id[sizeof(nodes->id) - 1] = '\0';
     nodes->ip[sizeof(nodes->ip) - 1] = '\0';
     nodes->port[sizeof(nodes->port) - 1] = '\0';
+    this_node.VE = 0;
+    this_node.VB = 0;
+    for (int i = 0; i < MAX_NODES; i++)
+        this_node.VI[i] = 0;
 }
 
 char *random_number(char new_str[3])
@@ -395,9 +414,13 @@ void tcp_connect(int num_nodes)
     strcpy(ip_connect, nodes[id_connect].ip);
     strcpy(port_connect, nodes[id_connect].port);
     struct sockaddr_in serv_addr;
-    int sock = 0;
-
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
+    int i;
+    for (i = 0; i < MAX_NODES; i++)
+    {
+        if (client_fds[i] != -1)
+            break;
+    }
+    if ((client_fds[i] = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
         printf("\n Socket creation error \n");
         exit(-1);
@@ -414,9 +437,11 @@ void tcp_connect(int num_nodes)
         exit(-1);
     }
 
-    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    if (connect(client_fds[i], (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
         printf("\nConnection Failed \n");
         exit(-1);
     }
+    sprintf(buffer, "NEW %s %s %s\n", this_node.my_node.id, this_node.my_node.ip, this_node.my_node.port);
+    write(client_fds[i], buffer, strlen(buffer));
 }
