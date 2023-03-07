@@ -34,8 +34,6 @@ char buffer[1024];
 
 char *UDP_server_message(const char *message, int print);
 
-char *ipv4_find();
-
 int handle_join(char *net, char *id, char *ip, char *port);
 
 void handle_leave(char *net, char *id);
@@ -66,7 +64,7 @@ void inicialize_node();
 
 char *random_number(char new_str[3]);
 
-void tcp_connect(int num_nodes, char *id_connect);
+void tcp_connect(int num_nodes);
 
 node_t nodes[MAX_NODES];
 our_node this_node;
@@ -87,11 +85,6 @@ int main(int argc, char *argv[])
     socklen_t cli_addr_size = sizeof(client_addr);
 
     inicialize_node();
-
-    for (int i = 0; i < MAX_NODES; i++)
-    {
-        client_fds[i] = -1;
-    }
 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
@@ -138,7 +131,6 @@ int main(int argc, char *argv[])
         {
             fgets(buff, 255, stdin); // LE o que ta escrito
             sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
-
             if (strcmp(message, "join") == 0)
                 flag = handle_join(arg1, arg2, argv[1], argv[2]);
             if (strcmp(message, "leave") == 0 && flag == 1)
@@ -167,17 +159,12 @@ int main(int argc, char *argv[])
         }
         if (FD_ISSET(server_fd, &rfds_list) == 1)
         {
-            for (i = 0; i < MAX_NODES; i++)
-            {
-                if (client_fds[i] != -1)
-                    break;
-            }
             if ((client_fds[i] = accept(server_fd, (struct sockaddr *)&client_addr, &cli_addr_size)) < 0)
             {
                 perror("accept");
                 exit(EXIT_FAILURE);
             }
-            FD_SET(client_fds[i], &rfds_list);
+            FD_SET(client_fds[i++], &rfds_list);
         }
         for (int x = 0; x < i; x++)
         {
@@ -218,31 +205,33 @@ int main(int argc, char *argv[])
 int handle_join(char *net, char *id, char *ip, char *port)
 {
     int flag = 0;
-    char id_connect[3], right_node[3];
+    char id_connect[3];
     char message[50];
     int count = node_list(net, 0);
-
+    printf("meu id: %s %s\n", id, this_node.my_node.id);
     strcpy(this_node.my_node.id, id);
     strcpy(this_node.my_node.ip, ip);
     strcpy(this_node.my_node.port, port);
+    strcpy(id_connect, id);
 
     if (count > 0)
     {
-        while (verify_node(id, count) == 0)
+        while (verify_node(id_connect, count) == 0)
         {
-            strcpy(id_connect, random_number(id));
+            strcpy(id_connect, random_number(id_connect));
         }
-        tcp_connect(count, id_connect);
-        this_node.VE = atoi(id_connect);
+        strcpy(this_node.my_node.id, id_connect);
+        tcp_connect(count);
     }
-    else
-    {
+
+    if (count < 0)
         this_node.VE = atoi(this_node.my_node.id);
-    }
+    else
+        this_node.VE = atoi(this_node.my_node.id);
+
     this_node.VB = atoi(this_node.my_node.id);
-    printf("%s %s %s %s\n", net, id, ip, port);
+    fprintf(stdout, "REG %s %s %s %d\n", this_node.my_node.id, this_node.my_node.ip, this_node.my_node.port, this_node.VE);
     sprintf(message, "REG %s %s %s %s", net, id_connect, ip, port);
-    printf("asdasd %s\n", message);
     if (strcmp(UDP_server_message(message, 1), "OKREG") == 0)
         flag = 1;
 
@@ -269,6 +258,7 @@ int parse_nodes(char *nodes_str, int max_nodes)
     char *token;
     int node_count = 0;
     // make a copy of the input string
+
     char *nodes_copy = strdup(nodes_str);
     if (nodes_copy == NULL)
     {
@@ -384,24 +374,6 @@ int node_list(char *net, int print)
     return parse_nodes(buff, MAX_NODES);
 }
 
-char *ipv4_find()
-{
-    int n;
-    struct ifreq ifr;
-
-    n = socket(AF_INET, SOCK_DGRAM, 0);
-    // Type of address to retrieve - IPv4 IP address
-    ifr.ifr_addr.sa_family = AF_INET;
-    // Copy the interface name in the ifreq structure
-    strncpy(ifr.ifr_name, "eth0", IFNAMSIZ - 1);
-    ioctl(n, SIOCGIFADDR, &ifr);
-    close(n);
-
-    // display result
-    printf("IP Address is %s\n", inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr));
-    return inet_ntoa(((struct sockaddr_in *)&ifr.ifr_addr)->sin_addr);
-}
-
 char *UDP_server_message(const char *message, int print)
 {
     int sockfd;
@@ -427,7 +399,7 @@ char *UDP_server_message(const char *message, int print)
     }
     buffer[n] = '\0';
     if (print == 1)
-        printf("Server says: %s\n", buffer);
+        fprintf(stdout, "Server says: %s\n", buffer);
     close(sockfd);
 
     return buffer;
@@ -454,9 +426,9 @@ char *random_number(char new_str[3])
     return new_str;
 }
 
-void tcp_connect(int num_nodes, char *id_connect)
+void tcp_connect(int num_nodes)
 {
-    int int_connect = atoi(id_connect);
+    int int_connect = rand() % num_nodes, sock = 0;
     char ip_connect[16], message[255];
     char port_connect[6];
     struct sockaddr_in serv_addr;
@@ -464,15 +436,9 @@ void tcp_connect(int num_nodes, char *id_connect)
     strcpy(ip_connect, nodes[int_connect].ip);
     strcpy(port_connect, nodes[int_connect].port);
 
-    int i;
-    for (i = 1; i <= MAX_NODES; i++)
+    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
-        if (client_fds[i] != -1)
-            break;
-    }
-    if ((client_fds[i] = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        printf("\n Socket creation error \n");
+        fprintf(stdout, "\n Socket creation error \n");
         exit(-1);
     }
     memset(&serv_addr, '0', sizeof(serv_addr));
@@ -483,15 +449,16 @@ void tcp_connect(int num_nodes, char *id_connect)
     // Convert IPv4 and IPv6 addresses from text to binary form
     if (inet_pton(AF_INET, ip_connect, &serv_addr.sin_addr) <= 0)
     {
-        printf("\nInvalid address/ Address not supported \n");
+        fprintf(stdout, "\nInvalid address/ Address not supported \n");
         exit(-1);
     }
 
-    if (connect(client_fds[i], (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        printf("\nConnection Failed \n");
+        fprintf(stdout, "\nConnection Failed \n");
         exit(-1);
     }
+    fprintf(stdout, "REG %s %s %s %d\n", this_node.my_node.id, this_node.my_node.ip, this_node.my_node.port, this_node.VE);
     sprintf(buffer, "NEW %s %s %s\n", this_node.my_node.id, this_node.my_node.ip, this_node.my_node.port);
-    write(client_fds[i], buffer, strlen(buffer));
+    write(sock, buffer, strlen(buffer));
 }
