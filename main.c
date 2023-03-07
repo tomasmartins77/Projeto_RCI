@@ -58,13 +58,15 @@ int node_list(char *net, int print);
 
 int parse_nodes(char *nodes_str, int max_nodes);
 
+node_t parse_line(char *line);
+
 int verify_node(char *net, int count);
 
 void inicialize_node();
 
 char *random_number(char new_str[3]);
 
-void tcp_connect(int num_nodes);
+void tcp_connect(int num_nodes, char *id_connect);
 
 node_t nodes[MAX_NODES];
 our_node this_node;
@@ -79,7 +81,7 @@ int main(int argc, char *argv[])
     int keyfd = 0, flag;
     char buff[255];
     char message[10], arg1[9], arg2[5], bootid[7], bootIP[7], bootTCP[8];
-
+    node_t temp;
     int server_fd, max_fd;
     struct sockaddr_in server_addr, client_addr;
     socklen_t cli_addr_size = sizeof(client_addr);
@@ -187,8 +189,25 @@ int main(int argc, char *argv[])
 
                 if (strcmp(buffer, "NEW") == 0)
                 {
+
+                    if (atoi(this_node.my_node.id) == this_node.VE)
+                    {
+                        temp = parse_line(buffer);
+                        sprintf(buff, "%02d", this_node.VE);
+                        strcpy(buff, temp.id);
+                    }
+                    else
+                    {
+                        // colocar como interno
+                    }
                     sprintf(buffer, "EXTERN %s %s %s\n", nodes[this_node.VE].id, nodes[this_node.VE].ip, nodes[this_node.VE].port);
                     write(client_fds[x], buffer, 1024);
+                }
+                if (strcmp(buffer, "EXTERN") == 0)
+                {
+                    temp = parse_line(buffer);
+                    sprintf(buff, "%02d", this_node.VB);
+                    strcpy(buff, temp.id);
                 }
             }
         }
@@ -198,32 +217,34 @@ int main(int argc, char *argv[])
 
 int handle_join(char *net, char *id, char *ip, char *port)
 {
-    int flag = 0, conn_node = 0;
-    char new_id[3], right_node[3];
+    int flag = 0;
+    char id_connect[3], right_node[3];
     char message[50];
     int count = node_list(net, 0);
-    char *endptr;
+
+    strcpy(this_node.my_node.id, id);
+    strcpy(this_node.my_node.ip, ip);
+    strcpy(this_node.my_node.port, port);
 
     if (count > 0)
     {
         while (verify_node(id, count) == 0)
         {
-            random_number(new_id);
-            strcpy(id, new_id);
+            strcpy(id_connect, random_number(id));
         }
+        tcp_connect(count, id_connect);
+        this_node.VE = atoi(id_connect);
     }
-
-    sprintf(message, "REG %s %s %s %s", net, id, ip, port);
+    else
+    {
+        this_node.VE = atoi(this_node.my_node.id);
+    }
+    this_node.VB = atoi(this_node.my_node.id);
+    printf("%s %s %s %s\n", net, id, ip, port);
+    sprintf(message, "REG %s %s %s %s", net, id_connect, ip, port);
+    printf("asdasd %s\n", message);
     if (strcmp(UDP_server_message(message, 1), "OKREG") == 0)
         flag = 1;
-    strcpy(this_node.my_node.id, id);
-    strcpy(this_node.my_node.ip, ip);
-    strcpy(this_node.my_node.port, port);
-    long num = strtol(id, &endptr, 10);
-
-    this_node.VB = (int)num;
-    if (count > 0)
-        tcp_connect(count);
 
     node_list(net, 1);
     return flag;
@@ -288,6 +309,33 @@ int parse_nodes(char *nodes_str, int max_nodes)
         line = strtok_r(NULL, "\n", &nodes_copy);
     }
     return node_count;
+}
+
+node_t parse_line(char *line)
+{
+    char *token;
+    node_t node;
+    token = strtok(line, " ");
+    if (token != NULL)
+    {
+        strncpy(node.id, token, sizeof(node.id));
+        node.id[sizeof(node.id) - 1] = '\0';
+    }
+
+    token = strtok(NULL, " ");
+    if (token != NULL)
+    {
+        strncpy(node.ip, token, sizeof(node.ip));
+        node.ip[sizeof(node.ip) - 1] = '\0';
+    }
+
+    token = strtok(NULL, " ");
+    if (token != NULL)
+    {
+        strncpy(node.port, token, sizeof(node.port));
+        node.port[sizeof(node.port) - 1] = '\0';
+    }
+    return node;
 }
 
 void handle_leave(char *net, char *id)
@@ -406,16 +454,18 @@ char *random_number(char new_str[3])
     return new_str;
 }
 
-void tcp_connect(int num_nodes)
+void tcp_connect(int num_nodes, char *id_connect)
 {
-    int id_connect = rand() % num_nodes;
+    int int_connect = atoi(id_connect);
     char ip_connect[16], message[255];
     char port_connect[6];
-    strcpy(ip_connect, nodes[id_connect].ip);
-    strcpy(port_connect, nodes[id_connect].port);
     struct sockaddr_in serv_addr;
+
+    strcpy(ip_connect, nodes[int_connect].ip);
+    strcpy(port_connect, nodes[int_connect].port);
+
     int i;
-    for (i = 0; i < MAX_NODES; i++)
+    for (i = 1; i <= MAX_NODES; i++)
     {
         if (client_fds[i] != -1)
             break;
