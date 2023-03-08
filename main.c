@@ -34,7 +34,7 @@ char buffer[1024];
 
 char *UDP_server_message(const char *message, int print);
 
-int handle_join(char *net, char *id, char *ip, char *port);
+int handle_join(char *net, char *id, char *ip, char *port, int *sock);
 
 void handle_leave(char *net, char *id);
 
@@ -64,7 +64,7 @@ void inicialize_node();
 
 char *random_number(char new_str[3]);
 
-void tcp_connect(int num_nodes);
+int tcp_connect(int num_nodes);
 
 node_t nodes[MAX_NODES];
 our_node this_node;
@@ -77,10 +77,10 @@ int main(int argc, char *argv[])
     ssize_t n;
     fd_set rfds, rfds_list;
     int keyfd = 0, flag;
-    char buff[255];
+    char buff[1024];
     char message[10], arg1[9], arg2[5], bootid[7], bootIP[7], bootTCP[8];
     node_t temp;
-    int server_fd, max_fd;
+    int server_fd, max_fd, fd_temp;
     struct sockaddr_in server_addr, client_addr;
     socklen_t cli_addr_size = sizeof(client_addr);
 
@@ -113,13 +113,13 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    max_fd = server_fd;
-
     while (1)
     {
         FD_ZERO(&rfds);           // poem todos a 0
         FD_SET(keyfd, &rfds);     // adiciona o keyboard
         FD_SET(server_fd, &rfds); // adiciona o server
+        for (int x = 0; x < MAX_NODES; x++)
+            FD_SET(client_fds[x], &rfds);
 
         rfds_list = rfds;
 
@@ -132,9 +132,14 @@ int main(int argc, char *argv[])
             fgets(buff, 255, stdin); // LE o que ta escrito
             sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
             if (strcmp(message, "join") == 0)
-                flag = handle_join(arg1, arg2, argv[1], argv[2]);
+            {
+                flag = handle_join(arg1, arg2, argv[1], argv[2], &client_fds[i]);
+                if (flag == 1)
+                    i++;
+            }
+
             if (strcmp(message, "leave") == 0 && flag == 1)
-                handle_leave(arg1, arg2);
+                handle_leave(arg1, this_node.my_node.id);
             else if (flag == 0)
                 fprintf(stdout, "no node created\n");
             if (strcmp(message, "djoin") == 0)
@@ -164,22 +169,23 @@ int main(int argc, char *argv[])
                 perror("accept");
                 exit(EXIT_FAILURE);
             }
+            printf("socket: %d\n", client_fds[i]);
             FD_SET(client_fds[i++], &rfds_list);
         }
         for (int x = 0; x < i; x++)
         {
             if (FD_ISSET(client_fds[x], &rfds_list) == 1)
             {
-                memset(buffer, 0, 1024);
-                read(client_fds[x], buffer, 1024);
-                fprintf(stdout, "%s\n", buffer);
+                memset(buff, 0, 1024);
+                read(client_fds[x], buff, 1024);
+                fprintf(stdout, "%d fd foi set %s\n", client_fds[x], buff);
 
-                if (strcmp(buffer, "NEW") == 0)
+                if (strcmp(buff, "NEW") == 0)
                 {
 
                     if (atoi(this_node.my_node.id) == this_node.VE)
                     {
-                        temp = parse_line(buffer);
+                        temp = parse_line(buff);
                         sprintf(buff, "%02d", this_node.VE);
                         strcpy(buff, temp.id);
                     }
@@ -187,12 +193,12 @@ int main(int argc, char *argv[])
                     {
                         // colocar como interno
                     }
-                    sprintf(buffer, "EXTERN %s %s %s\n", nodes[this_node.VE].id, nodes[this_node.VE].ip, nodes[this_node.VE].port);
-                    write(client_fds[x], buffer, 1024);
+                    sprintf(buff, "EXTERN %s %s %s\n", nodes[this_node.VE].id, nodes[this_node.VE].ip, nodes[this_node.VE].port);
+                    write(client_fds[x], buff, 1024);
                 }
-                if (strcmp(buffer, "EXTERN") == 0)
+                if (strcmp(buff, "EXTERN") == 0)
                 {
-                    temp = parse_line(buffer);
+                    temp = parse_line(buff);
                     sprintf(buff, "%02d", this_node.VB);
                     strcpy(buff, temp.id);
                 }
@@ -202,13 +208,13 @@ int main(int argc, char *argv[])
     return 0;
 }
 
-int handle_join(char *net, char *id, char *ip, char *port)
+int handle_join(char *net, char *id, char *ip, char *port, int *sock)
 {
     int flag = 0;
     char id_connect[3];
     char message[50];
     int count = node_list(net, 0);
-    printf("meu id: %s %s\n", id, this_node.my_node.id);
+
     strcpy(this_node.my_node.id, id);
     strcpy(this_node.my_node.ip, ip);
     strcpy(this_node.my_node.port, port);
@@ -221,7 +227,7 @@ int handle_join(char *net, char *id, char *ip, char *port)
             strcpy(id_connect, random_number(id_connect));
         }
         strcpy(this_node.my_node.id, id_connect);
-        tcp_connect(count);
+        (*sock) = tcp_connect(count);
     }
 
     if (count < 0)
@@ -230,7 +236,7 @@ int handle_join(char *net, char *id, char *ip, char *port)
         this_node.VE = atoi(this_node.my_node.id);
 
     this_node.VB = atoi(this_node.my_node.id);
-    fprintf(stdout, "REG %s %s %s %d\n", this_node.my_node.id, this_node.my_node.ip, this_node.my_node.port, this_node.VE);
+
     sprintf(message, "REG %s %s %s %s", net, id_connect, ip, port);
     if (strcmp(UDP_server_message(message, 1), "OKREG") == 0)
         flag = 1;
@@ -426,9 +432,9 @@ char *random_number(char new_str[3])
     return new_str;
 }
 
-void tcp_connect(int num_nodes)
+int tcp_connect(int num_nodes)
 {
-    int int_connect = rand() % num_nodes, sock = 0;
+    int int_connect = rand() % num_nodes, sock = 9;
     char ip_connect[16], message[255];
     char port_connect[6];
     struct sockaddr_in serv_addr;
@@ -458,7 +464,8 @@ void tcp_connect(int num_nodes)
         fprintf(stdout, "\nConnection Failed \n");
         exit(-1);
     }
-    fprintf(stdout, "REG %s %s %s %d\n", this_node.my_node.id, this_node.my_node.ip, this_node.my_node.port, this_node.VE);
     sprintf(buffer, "NEW %s %s %s\n", this_node.my_node.id, this_node.my_node.ip, this_node.my_node.port);
+
     write(sock, buffer, strlen(buffer));
+    return sock;
 }
