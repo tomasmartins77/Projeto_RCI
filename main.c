@@ -22,13 +22,13 @@ typedef struct node
     char ip[16];
     char port[6];
 } node_t;
-typedef struct our_node
+typedef struct server_node
 {
     int VE;
     int VB;
     int VI[MAX_NODES];
     struct node my_node;
-} our_node;
+} server_node;
 
 char buffer[1024];
 
@@ -38,7 +38,7 @@ int handle_join(char *net, char *id, char *ip, char *port, int *sock);
 
 void handle_leave(char *net, char *id);
 
-void handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP);
+int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP);
 
 void handle_create(char *name);
 
@@ -66,21 +66,22 @@ char *random_number(char new_str[3]);
 
 int tcp_connect(int num_nodes);
 
+int tcp_client(char *ip_address, int portno, char *message, char *response);
+
 node_t nodes[MAX_NODES];
-our_node this_node;
+server_node this_node;
 int client_fds[MAX_NODES];
 
 int main(int argc, char *argv[])
 {
     srand(time(NULL));
-    int fd, errcode, i = 0;
-    ssize_t n;
+    int i = 0;
     fd_set rfds, rfds_list;
     int keyfd = 0, flag;
     char buff[1024];
     char message[10], arg1[9], arg2[5], bootid[7], bootIP[7], bootTCP[8];
     node_t temp;
-    int server_fd, max_fd, fd_temp;
+    int server_fd;
     struct sockaddr_in server_addr, client_addr;
     socklen_t cli_addr_size = sizeof(client_addr);
 
@@ -118,8 +119,6 @@ int main(int argc, char *argv[])
         FD_ZERO(&rfds);           // poem todos a 0
         FD_SET(keyfd, &rfds);     // adiciona o keyboard
         FD_SET(server_fd, &rfds); // adiciona o server
-        for (int x = 0; x < MAX_NODES; x++)
-            FD_SET(client_fds[x], &rfds);
 
         rfds_list = rfds;
 
@@ -342,8 +341,60 @@ void handle_leave(char *net, char *id)
     node_list(net, 1);
 }
 
-void handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
+int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
 {
+    char message[20];
+    sprintf(message, "REG %s %s", net, id);
+    int fd;
+    char response[20];
+
+    sprintf(message, "New %s %s %s", id, bootIP, bootTCP);
+    fd = tcp_client(bootid, atoi(bootTCP), message, response);
+    return fd;
+}
+
+int tcp_client(char *ip_address, int portno, char *message, char *response)
+{
+    int sockfd, n;
+    struct sockaddr_in serv_addr;
+    struct hostent *server;
+    char buffer_local[256];
+    sockfd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockfd < 0)
+    {
+        perror("Error opening socket");
+        exit(1);
+    }
+    server = gethostbyname(ip_address);
+    if (server == NULL)
+    {
+        fprintf(stderr, "Error, no such host\n");
+        exit(0);
+    }
+    bzero((char *)&serv_addr, sizeof(serv_addr));
+    serv_addr.sin_family = AF_INET;
+    bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
+    serv_addr.sin_port = htons(portno);
+    if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    {
+        perror("Error connecting");
+        exit(1);
+    }
+    n = write(sockfd, message, strlen(message));
+    if (n < 0)
+    {
+        perror("Error writing to socket");
+        exit(1);
+    }
+    bzero(buffer_local, 256);
+    n = read(sockfd, buffer_local, 255);
+    if (n < 0)
+    {
+        perror("Error reading from socket");
+        exit(1);
+    }
+    strcpy(response, buffer_local);
+    return sockfd;
 }
 
 void handle_create(char *name)
