@@ -32,11 +32,13 @@ typedef struct server_node
 
 char buffer[1024];
 
+int create_server(char *ip_address, int port);
+
 char *UDP_server_message(const char *message, int print);
 
 int handle_join(char *net, char *id, char *ip, char *port, int position, int *client_fds);
 
-void handle_leave(char *net, char *id);
+void handle_leave(char *net, char *id, int position, int *client_fds, int server_fd);
 
 int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP);
 
@@ -46,7 +48,7 @@ void handle_delete(char *name);
 
 void handle_get(char *dest, char *name);
 
-void handle_st(char *net);
+void handle_st();
 
 void handle_sn(char *net);
 
@@ -78,40 +80,15 @@ int main(int argc, char *argv[])
     fd_set rfds_list;
     int keyfd = 0, count = 0, flag = 0;
     char buff[1024], str_temp[10], id_temp[3], ip_temp[16], port_temp[6];
-    char message[10], arg1[9], arg2[5], bootid[7], bootIP[7], bootTCP[8];
+    char message[10], arg1[9], arg2[5], bootid[7], bootIP[7], bootTCP[8], net[4];
     node_t temp;
     int server_fd, client_fds[MAX_NODES] = {-1};
-    struct sockaddr_in server_addr, client_addr;
+    struct sockaddr_in client_addr;
     socklen_t cli_addr_size = sizeof(client_addr);
 
     inicialize_node();
 
-    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
-    {
-        perror("socket");
-        exit(EXIT_FAILURE);
-    }
-
-    int opt = 1;
-    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) == -1)
-    {
-        perror("setsockopt");
-        exit(EXIT_FAILURE);
-    }
-
-    server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = INADDR_ANY;
-    server_addr.sin_port = htons(atoi(argv[2]));
-    if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
-    {
-        perror("bind");
-        exit(EXIT_FAILURE);
-    }
-    if (listen(server_fd, MAX_NODES) == -1)
-    {
-        perror("listen");
-        exit(EXIT_FAILURE);
-    }
+    server_fd = create_server(argv[1], atoi(argv[2]));
 
     while (1)
     {
@@ -121,7 +98,10 @@ int main(int argc, char *argv[])
 
         int ready = select(MAX_NODES + 1, &rfds_list, NULL, NULL, NULL); // ve se o keyboard foi set ou n
         if (ready < 0)
-            /*error*/ exit(1);
+        { /*error*/
+            printf("oh no\n");
+            exit(1);
+        }
 
         if (FD_ISSET(keyfd, &rfds_list) == 1)
         {
@@ -130,14 +110,14 @@ int main(int argc, char *argv[])
             if (strcmp(message, "join") == 0)
             {
                 count = handle_join(arg1, arg2, argv[1], argv[2], position, client_fds);
-
+                strcpy(net, arg1);
                 if (count > 0)
                     FD_SET(client_fds[position++], &rfds_list);
                 flag = 1;
             }
             if (strcmp(message, "leave") == 0 && flag == 1)
-                handle_leave(arg1, server.my_node.id);
-            else if (flag == 0)
+                handle_leave(net, server.my_node.id, position, client_fds, server_fd);
+            else if (strcmp(message, "leave") == 0 && flag == 0)
                 fprintf(stdout, "no node created\n");
             if (strcmp(message, "djoin") == 0)
                 handle_djoin(arg1, arg2, bootid, bootIP, bootTCP);
@@ -147,8 +127,10 @@ int main(int argc, char *argv[])
                 handle_delete(arg1);
             if (strcmp(message, "get") == 0)
                 handle_get(arg1, arg2);
-            if (strcmp(message, "show topology") == 0 || strcmp(message, "st") == 0)
-                handle_st(arg2);
+            if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && flag == 1)
+                handle_st();
+            else if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && flag == 0)
+                fprintf(stdout, "no node created\n");
             if (strcmp(message, "show names") == 0 || strcmp(message, "sn") == 0)
                 handle_sn(arg2);
             if (strcmp(message, "show routing") == 0 || strcmp(message, "sr") == 0)
@@ -195,7 +177,6 @@ int main(int argc, char *argv[])
                         printf("nao\n");
                         // colocar como interno
                     }
-
                     sprintf(buff, "EXTERN %s %s %s\n", server.VE.id, server.VE.ip, server.VE.port);
                     write(client_fds[x], buff, 1024);
                 }
@@ -209,6 +190,38 @@ int main(int argc, char *argv[])
         }
     }
     return 0;
+}
+
+int create_server(char *ip_address, int port)
+{
+    int server_fd;
+    struct sockaddr_in server_addr;
+
+    if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
+    {
+        perror("socket");
+        exit(EXIT_FAILURE);
+    }
+    int opt = 1;
+    if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR | SO_REUSEPORT, &opt, sizeof(opt)) == -1)
+    {
+        perror("setsockopt");
+        exit(EXIT_FAILURE);
+    }
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = inet_addr(ip_address);
+    server_addr.sin_port = htons(port);
+    if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
+    {
+        perror("bind");
+        exit(EXIT_FAILURE);
+    }
+    if (listen(server_fd, MAX_NODES) == -1)
+    {
+        perror("listen");
+        exit(EXIT_FAILURE);
+    }
+    return server_fd;
 }
 
 int handle_join(char *net, char *id, char *ip, char *port, int position, int *client_fds)
@@ -230,7 +243,11 @@ int handle_join(char *net, char *id, char *ip, char *port, int position, int *cl
         client_fds[position] = tcp_connect(count);
     }
     strcpy(server.VE.id, server.my_node.id);
+    strcpy(server.VE.ip, server.my_node.ip);
+    strcpy(server.VE.port, server.my_node.port);
     strcpy(server.VB.id, server.my_node.id);
+    strcpy(server.VB.ip, server.my_node.ip);
+    strcpy(server.VB.port, server.my_node.port);
 
     sprintf(message, "REG %s %s %s %s", net, id_connect, ip, port);
     if (strcmp(UDP_server_message(message, 1), "OKREG") != 0)
@@ -299,9 +316,11 @@ int parse_nodes(char *nodes_str, int max_nodes)
     return node_count;
 }
 
-void handle_leave(char *net, char *id)
+void handle_leave(char *net, char *id, int position, int *client_fds, int server_fd)
 {
+    printf("%d\n", position);
     char message[13];
+
     sprintf(message, "UNREG %s %s", net, id);
     UDP_server_message(message, 1);
     node_list(net, 1);
@@ -375,8 +394,10 @@ void handle_get(char *dest, char *name)
 {
 }
 
-void handle_st(char *net)
+void handle_st()
 {
+    fprintf(stdout, "Vizinho externo: %s %s %s\n", server.VE.id, server.VE.ip, server.VE.port);
+    fprintf(stdout, "Vizinho Backup: %s %s %s\n", server.VB.id, server.VB.ip, server.VB.port);
 }
 
 void handle_sn(char *net)
