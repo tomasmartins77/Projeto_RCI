@@ -116,7 +116,11 @@ int main(int argc, char *argv[])
                 flag = 1;
             }
             if (strcmp(message, "leave") == 0 && flag == 1)
+            {
                 handle_leave(net, server.my_node.id, position, client_fds, server_fd);
+                for (int i = 0; i < position; i++)
+                    FD_CLR(client_fds[i], &rfds_list);
+            }
             else if (strcmp(message, "leave") == 0 && flag == 0)
                 fprintf(stdout, "no node created\n");
             if (strcmp(message, "djoin") == 0)
@@ -137,6 +141,8 @@ int main(int argc, char *argv[])
                 handle_sr(arg2);
             if (strcmp(message, "exit") == 0)
             {
+                close(server_fd);
+                FD_CLR(server_fd, &rfds_list);
                 fprintf(stdout, "exiting program\n");
                 exit(1);
             }
@@ -320,7 +326,8 @@ void handle_leave(char *net, char *id, int position, int *client_fds, int server
 {
     printf("%d\n", position);
     char message[13];
-
+    for (int i = 0; i < position; i++)
+        close(client_fds[i]);
     sprintf(message, "UNREG %s %s", net, id);
     UDP_server_message(message, 1);
     node_list(net, 1);
