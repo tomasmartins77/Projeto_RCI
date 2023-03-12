@@ -34,4 +34,8 @@ void handle_sn();
 
 void handle_sr(char *net);
 
+fd_set handle_menu(int *position, fd_set rfds_list, int *client_fds, int server_fd, char *ip, char *port, int intr);
+
+fd_set client_fd_set(fd_set rfds_list, int *client_fds, int x, int *intr);
+
 #endif /* HEADER_H */
