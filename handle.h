@@ -22,7 +22,7 @@ int handle_join(char *net, char *id, char *ip, char *port, int position, int *cl
 
 int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP);
 
-void handle_create(char *name);
+int handle_create(char *name);
 
 void handle_delete(char *name);
 
@@ -30,7 +30,7 @@ void handle_get(char *dest, char *name);
 
 void handle_st(int intr);
 
-void handle_sn(char *net);
+void handle_sn();
 
 void handle_sr(char *net);
 

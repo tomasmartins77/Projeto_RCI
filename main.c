@@ -28,7 +28,7 @@ int main(int argc, char *argv[])
     srand(time(NULL));
     int position = 0, intr = 0;
     fd_set rfds_list;
-    int keyfd = 0, count = 0, flag = 0;
+    int keyfd = 0, count = 0, flag_join = 0, flag_delete = 0, flag_create = 0;
     char buff[1024], str_temp[10], id_temp[3], ip_temp[16], port_temp[6];
     char message[10], arg1[9], arg2[5], bootid[7], bootIP[7], bootTCP[8], net[4];
     node_t temp;
@@ -36,6 +36,7 @@ int main(int argc, char *argv[])
     struct sockaddr_in client_addr;
     socklen_t cli_addr_size = sizeof(client_addr);
 
+    memset(server.names, 0, sizeof(server.names));
     server_fd = create_server(argv[1], atoi(argv[2]));
 
     while (1)
@@ -55,37 +56,37 @@ int main(int argc, char *argv[])
         {
             fgets(buff, 255, stdin); // LE o que ta escrito
             sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
-            if (strcmp(message, "join") == 0 && flag == 0)
+            if (strcmp(message, "join") == 0 && flag_join == 0)
             {
                 count = handle_join(arg1, arg2, argv[1], argv[2], position, client_fds);
                 strcpy(net, arg1);
                 if (count > 0)
                     FD_SET(client_fds[position++], &rfds_list);
-                flag = 1;
+                flag_join = 1;
             }
-            else if (strcmp(message, "join") == 0 && flag == 1)
+            else if (strcmp(message, "join") == 0 && flag_join == 1)
                 fprintf(stdout, "node already created\n");
-            if (strcmp(message, "leave") == 0 && flag == 1)
+            if (strcmp(message, "leave") == 0 && flag_join == 1)
             {
-                flag = 0;
+                flag_join = 0;
                 handle_leave(net, server.my_node.id, position, client_fds);
             }
-            else if (strcmp(message, "leave") == 0 && flag == 0)
+            else if (strcmp(message, "leave") == 0 && flag_join == 0)
                 fprintf(stdout, "no node created\n");
             if (strcmp(message, "djoin") == 0)
                 handle_djoin(arg1, arg2, bootid, bootIP, bootTCP);
             if (strcmp(message, "create") == 0)
-                handle_create(arg1);
-            if (strcmp(message, "delete") == 0)
+                flag_create = handle_create(arg1);
+            if (strcmp(message, "delete") == 0 && flag_create > 0)
                 handle_delete(arg1);
             if (strcmp(message, "get") == 0)
                 handle_get(arg1, arg2);
-            if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && flag == 1)
+            if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && flag_join == 1)
                 handle_st(intr);
-            else if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && flag == 0)
+            else if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && flag_join == 0)
                 fprintf(stdout, "no node created\n");
             if (strcmp(message, "show names") == 0 || strcmp(message, "sn") == 0)
-                handle_sn(arg2);
+                handle_sn();
             if (strcmp(message, "show routing") == 0 || strcmp(message, "sr") == 0)
                 handle_sr(arg2);
             if (strcmp(message, "exit") == 0)

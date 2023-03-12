@@ -31,6 +31,7 @@ typedef struct server_node
     struct node VB;
     struct node VI[MAX_NODES];
     struct node my_node;
+    char names[50][100];
 } server_node;
 
 void clear(char *net);

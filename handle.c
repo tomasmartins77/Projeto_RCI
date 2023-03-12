@@ -37,7 +37,6 @@ int handle_join(char *net, char *id, char *ip, char *port, int position, int *cl
 
 void handle_leave(char *net, char *id, int position, int *client_fds)
 {
-    printf("position: %d\n", position);
     char message[13];
     for (int i = 0; i < (position - 1); i++)
         close(client_fds[i]);
@@ -58,14 +57,39 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
     return fd;
 }
 
-void handle_create(char *name)
+int handle_create(char *name)
 {
-    /* function code here */
+    int i, flag = 0;
+    for (i = 0; i < 50; i++)
+    {
+        if (strcmp(server.names[i], "\0") == 0)
+        {
+            strcpy(server.names[i], name);
+            flag++;
+            break;
+        }
+    }
+    fprintf(stdout, "created file: %s\n", server.names[i]);
+    return flag;
 }
 
 void handle_delete(char *name)
 {
-    /* function code here */
+    int i, flag = 0;
+    for (i = 0; i < 50; i++)
+    {
+        if (strcmp(server.names[i], name) == 0)
+        {
+            strcpy(server.names[i], "\0");
+            flag = 1;
+            fprintf(stdout, "deleted file: %s\n", name);
+            break;
+        }
+    }
+    if (flag == 0)
+    {
+        fprintf(stdout, "no file deleted\n");
+    }
 }
 
 void handle_get(char *dest, char *name)
@@ -84,9 +108,17 @@ void handle_st(int intr)
     }
 }
 
-void handle_sn(char *net)
+void handle_sn()
 {
-    /* function code here */
+    int i;
+    fprintf(stdout, "files:\n");
+    for (i = 0; i < 50; i++)
+    {
+        if (strcmp(server.names[i], "\0") != 0)
+        {
+            fprintf(stdout, "%s\n", server.names[i]);
+        }
+    }
 }
 
 void handle_sr(char *net)
