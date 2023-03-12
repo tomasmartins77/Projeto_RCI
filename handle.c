@@ -1,7 +1,7 @@
 #include "handle.h"
 
-
-extern server_node this_node;
+extern char buffer[1024];
+extern node_t nodes[MAX_NODES];
 extern server_node server;
 
 int handle_join(char *net, char *id, char *ip, char *port, int position, int *client_fds)
@@ -9,6 +9,7 @@ int handle_join(char *net, char *id, char *ip, char *port, int position, int *cl
     int flag = 0;
     char id_connect[3];
     char message[50];
+    node_t temp;
     int count = node_list(net, 0);
 
     strcpy(server.my_node.id, id);
@@ -22,12 +23,9 @@ int handle_join(char *net, char *id, char *ip, char *port, int position, int *cl
         strcpy(server.my_node.id, id_connect);
         client_fds[position] = tcp_connect(count);
     }
-    strcpy(server.VE.id, server.my_node.id);
-    strcpy(server.VE.ip, server.my_node.ip);
-    strcpy(server.VE.port, server.my_node.port);
-    strcpy(server.VB.id, server.my_node.id);
-    strcpy(server.VB.ip, server.my_node.ip);
-    strcpy(server.VB.port, server.my_node.port);
+    else
+        server.VE = server.my_node;
+    server.VB = server.my_node;
 
     sprintf(message, "REG %s %s %s %s", net, id_connect, ip, port);
     if (strcmp(UDP_server_message(message, 1), "OKREG") != 0)
@@ -37,12 +35,13 @@ int handle_join(char *net, char *id, char *ip, char *port, int position, int *cl
     return count;
 }
 
-void handle_leave(char *net, char *id, int position, int *client_fds, int server_fd)
+void handle_leave(char *net, char *id, int position, int *client_fds)
 {
-    printf("%d\n", position);
+    printf("position: %d\n", position);
     char message[13];
-    for (int i = 0; i < position; i++)
+    for (int i = 0; i < (position - 1); i++)
         close(client_fds[i]);
+
     sprintf(message, "UNREG %s %s", net, id);
     UDP_server_message(message, 1);
     node_list(net, 1);
@@ -74,10 +73,15 @@ void handle_get(char *dest, char *name)
     /* function code here */
 }
 
-void handle_st()
+void handle_st(int intr)
 {
     fprintf(stdout, "Vizinho externo: %s %s %s\n", server.VE.id, server.VE.ip, server.VE.port);
     fprintf(stdout, "Vizinho Backup: %s %s %s\n", server.VB.id, server.VB.ip, server.VB.port);
+    fprintf(stdout, "Vizinhos internos:\n");
+    for (int i = 0; i < intr; i++)
+    {
+        fprintf(stdout, "%s %s %s\n", server.VI[i].id, server.VI[i].ip, server.VI[i].port);
+    }
 }
 
 void handle_sn(char *net)

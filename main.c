@@ -21,14 +21,12 @@
 
 char buffer[1024];
 node_t nodes[MAX_NODES];
-server_node this_node;
-int client_fds[MAX_NODES];
 server_node server;
 
 int main(int argc, char *argv[])
 {
     srand(time(NULL));
-    int position = 0;
+    int position = 0, intr = 0;
     fd_set rfds_list;
     int keyfd = 0, count = 0, flag = 0;
     char buff[1024], str_temp[10], id_temp[3], ip_temp[16], port_temp[6];
@@ -37,8 +35,6 @@ int main(int argc, char *argv[])
     int server_fd, client_fds[MAX_NODES] = {-1};
     struct sockaddr_in client_addr;
     socklen_t cli_addr_size = sizeof(client_addr);
-
-    inicialize_node();
 
     server_fd = create_server(argv[1], atoi(argv[2]));
 
@@ -51,7 +47,7 @@ int main(int argc, char *argv[])
         int ready = select(MAX_NODES + 1, &rfds_list, NULL, NULL, NULL); // ve se o keyboard foi set ou n
         if (ready < 0)
         { /*error*/
-            printf("oh no\n");
+            fprintf(stdout, "\n error in select \n");
             exit(1);
         }
 
@@ -59,7 +55,7 @@ int main(int argc, char *argv[])
         {
             fgets(buff, 255, stdin); // LE o que ta escrito
             sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
-            if (strcmp(message, "join") == 0)
+            if (strcmp(message, "join") == 0 && flag == 0)
             {
                 count = handle_join(arg1, arg2, argv[1], argv[2], position, client_fds);
                 strcpy(net, arg1);
@@ -67,11 +63,12 @@ int main(int argc, char *argv[])
                     FD_SET(client_fds[position++], &rfds_list);
                 flag = 1;
             }
+            else if (strcmp(message, "join") == 0 && flag == 1)
+                fprintf(stdout, "node already created\n");
             if (strcmp(message, "leave") == 0 && flag == 1)
             {
-                handle_leave(net, server.my_node.id, position, client_fds, server_fd);
-                for (int i = 0; i < position; i++)
-                    FD_CLR(client_fds[i], &rfds_list);
+                flag = 0;
+                handle_leave(net, server.my_node.id, position, client_fds);
             }
             else if (strcmp(message, "leave") == 0 && flag == 0)
                 fprintf(stdout, "no node created\n");
@@ -84,7 +81,7 @@ int main(int argc, char *argv[])
             if (strcmp(message, "get") == 0)
                 handle_get(arg1, arg2);
             if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && flag == 1)
-                handle_st();
+                handle_st(intr);
             else if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && flag == 0)
                 fprintf(stdout, "no node created\n");
             if (strcmp(message, "show names") == 0 || strcmp(message, "sn") == 0)
@@ -118,31 +115,49 @@ int main(int argc, char *argv[])
             if (FD_ISSET(client_fds[x], &rfds_list) == 1)
             {
                 memset(buff, 0, 1024);
-                read(client_fds[x], buff, 1024);
+                int bytes_received = read(client_fds[x], buff, 1024);
+                if (bytes_received == 0)
+                {
+                    printf("asdasdasd\n");
+                    // else if x pertence a intr -> intr = intr - x
+                    if (strcmp(server.my_node.id, server.VB.id) != 0)
+                    {
+                        server.VE = server.VB;
+                        sprintf(buffer, "NEW %s %s %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
+                        write(client_fds[x], buff, 1024);
+                        sprintf(buff, "EXTERN %s %s %s\n", server.VE.id, server.VE.ip, server.VE.port);
+                        // for loop a enviar EXTERN aos intr
+                        for (int i = 0; i < intr; i++)
+                        {
+                        }
+                    }
+                    // else if intr != NULL -> escolhe intr random e EX = intr random
+                    //  envia EXTERN para intr     intr = intr - intr random
+                    else
+                    {
+                        server.VE = server.my_node;
+                    }
+                    FD_CLR(client_fds[x], &rfds_list);
+                }
                 fprintf(stdout, "%s", buff);
-                sscanf(buff, "%s %s %s %s", str_temp, id_temp, ip_temp, port_temp);
+                sscanf(buff, "%s %s %s %s", str_temp, temp.id, temp.ip, temp.port);
 
                 if (strcmp(str_temp, "NEW") == 0)
                 {
                     if (strcmp(server.my_node.id, server.VE.id) == 0) // ancora
                     {
-                        strcpy(server.VE.id, id_temp);
-                        strcpy(server.VE.ip, ip_temp);
-                        strcpy(server.VE.port, port_temp);
+                        server.VE = temp;
                     }
                     else
                     {
-                        printf("nao\n");
-                        // colocar como interno
+                        server.VI[intr++] = temp;
                     }
                     sprintf(buff, "EXTERN %s %s %s\n", server.VE.id, server.VE.ip, server.VE.port);
                     write(client_fds[x], buff, 1024);
                 }
                 if (strcmp(str_temp, "EXTERN") == 0)
                 {
-                    strcpy(server.VB.id, id_temp);
-                    strcpy(server.VB.ip, ip_temp);
-                    strcpy(server.VB.port, port_temp);
+                    server.VB = temp;
                 }
             }
         }

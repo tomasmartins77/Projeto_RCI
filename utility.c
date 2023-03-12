@@ -1,11 +1,8 @@
 #include "utility.h"
 
+extern char buffer[1024];
 extern server_node server;
-
-char buffer[1024];
-node_t nodes[MAX_NODES];
-server_node this_node;
-int client_fds[MAX_NODES];
+extern node_t nodes[MAX_NODES];
 
 void clear(char *net)
 {
@@ -39,7 +36,6 @@ char *UDP_server_message(const char *message, int print)
     {
         exit(1);
     }
-
     int len = sizeof(server_addr);
     int n = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&server_addr, &len);
     if (n < 0)
@@ -113,34 +109,6 @@ int parse_nodes(char *nodes_str, int max_nodes)
     return node_count;
 }
 
-node_t parse_line(char *line)
-{
-    char *token;
-    node_t node;
-    token = strtok(line, " ");
-    if (token != NULL)
-    {
-        strncpy(node.id, token, sizeof(node.id));
-        node.id[sizeof(node.id) - 1] = '\0';
-    }
-
-    token = strtok(NULL, " ");
-    if (token != NULL)
-    {
-        strncpy(node.ip, token, sizeof(node.ip));
-        node.ip[sizeof(node.ip) - 1] = '\0';
-    }
-
-    token = strtok(NULL, " ");
-    if (token != NULL)
-    {
-        strncpy(node.port, token, sizeof(node.port));
-        node.port[sizeof(node.port) - 1] = '\0';
-    }
-    return node;
-}
-
-
 int verify_node(char *net, int count)
 {
     int i;
@@ -154,31 +122,18 @@ int verify_node(char *net, int count)
     return 1;
 }
 
-void inicialize_node()
-{
-    strncpy(nodes->id, "000", sizeof(nodes->id) - 1);
-    strncpy(nodes->ip, "000", sizeof(nodes->ip) - 1);
-    strncpy(nodes->port, "00000", sizeof(nodes->port) - 1);
-    nodes->id[sizeof(nodes->id) - 1] = '\0';
-    nodes->ip[sizeof(nodes->ip) - 1] = '\0';
-    nodes->port[sizeof(nodes->port) - 1] = '\0';
-}
-
 char *random_number(char new_str[3])
 {
-   int number = rand() % 100;
+    int number = rand() % 100;
     sprintf(new_str, "%02d", number);
     return new_str;
 }
 
 int tcp_connect(int num_nodes)
 {
-    int int_connect = rand() % num_nodes, sock = 9;
-    char ip_connect[16], message[255];
-    char port_connect[6];
+    int int_connect = rand() % num_nodes, sock;
     struct sockaddr_in serv_addr;
-    strcpy(ip_connect, nodes[int_connect].ip);
-    strcpy(port_connect, nodes[int_connect].port);
+    server.VE = nodes[int_connect];
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -188,10 +143,10 @@ int tcp_connect(int num_nodes)
     memset(&serv_addr, '0', sizeof(serv_addr));
 
     serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(atoi(port_connect));
+    serv_addr.sin_port = htons(atoi(server.VE.port));
 
     // Convert IPv4 and IPv6 addresses from text to binary form
-    if (inet_pton(AF_INET, ip_connect, &serv_addr.sin_addr) <= 0)
+    if (inet_pton(AF_INET, server.VE.ip, &serv_addr.sin_addr) <= 0)
     {
         fprintf(stdout, "\nInvalid address/ Address not supported \n");
         exit(-1);
@@ -209,9 +164,8 @@ int tcp_connect(int num_nodes)
 
 int tcp_client(char *ip_address, int portno, char *message, char *response)
 {
-     int sockfd, n;
+    int sockfd;
     struct sockaddr_in serv_addr;
-    struct hostent *server;
     char buffer_local[256];
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -239,8 +193,8 @@ int tcp_client(char *ip_address, int portno, char *message, char *response)
     }
 
     write(sockfd, message, strlen(message));
-    read(sockfd,buffer_local,255);
-    strcpy(response,buffer_local);
+    read(sockfd, buffer_local, 255);
+    strcpy(response, buffer_local);
     return sockfd;
 }
 
