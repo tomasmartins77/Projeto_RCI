@@ -129,44 +129,10 @@ char *random_number(char new_str[3])
     return new_str;
 }
 
-int tcp_connect(int num_nodes)
-{
-    int int_connect = rand() % num_nodes, sock;
-    struct sockaddr_in serv_addr;
-    server.VE = nodes[int_connect];
-
-    if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        fprintf(stdout, "\n Socket creation error \n");
-        exit(-1);
-    }
-    memset(&serv_addr, '0', sizeof(serv_addr));
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(atoi(server.VE.port));
-
-    // Convert IPv4 and IPv6 addresses from text to binary form
-    if (inet_pton(AF_INET, server.VE.ip, &serv_addr.sin_addr) <= 0)
-    {
-        fprintf(stdout, "\nInvalid address/ Address not supported \n");
-        exit(-1);
-    }
-
-    if (connect(sock, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-    {
-        fprintf(stdout, "\nConnection Failed \n");
-        exit(-1);
-    }
-    sprintf(buffer, "NEW %s %s %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
-    write(sock, buffer, strlen(buffer));
-    return sock;
-}
-
-int tcp_client(char *ip_address, int portno, char *message, char *response)
+int tcp_client(char *ip_address, int portno)
 {
     int sockfd;
     struct sockaddr_in serv_addr;
-    char buffer_local[256];
 
     if ((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
     {
@@ -191,10 +157,6 @@ int tcp_client(char *ip_address, int portno, char *message, char *response)
         fprintf(stdout, "\nConnection Failed \n");
         exit(-1);
     }
-
-    write(sockfd, message, strlen(message));
-    read(sockfd, buffer_local, 255);
-    strcpy(response, buffer_local);
     return sockfd;
 }
 

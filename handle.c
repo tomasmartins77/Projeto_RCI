@@ -4,24 +4,25 @@ extern char buffer[1024];
 extern node_t nodes[MAX_NODES];
 extern server_node server;
 
-int handle_join(char *net, char *id, char *ip, char *port, int position, int *client_fds)
+int handle_join(char *net, char *id, char *ip, char *port, int *socket)
 {
     int flag = 0;
     char id_connect[3];
     char message[50];
     node_t temp;
+
     int count = node_list(net, 0);
 
     strcpy(server.my_node.id, id);
-    strcpy(server.my_node.ip, ip);
-    strcpy(server.my_node.port, port);
     strcpy(id_connect, id);
     if (count > 0)
     {
+        int int_connect = rand() % count;
         while (verify_node(id_connect, count) == 0)
             strcpy(id_connect, random_number(id_connect));
         strcpy(server.my_node.id, id_connect);
-        client_fds[position] = tcp_connect(count);
+        server.VE = nodes[int_connect];
+        (*socket) = handle_djoin(net, server.my_node.id, server.VE.id, server.VE.ip, server.VE.port);
     }
     else
         server.VE = server.my_node;
@@ -30,17 +31,19 @@ int handle_join(char *net, char *id, char *ip, char *port, int position, int *cl
     sprintf(message, "REG %s %s %s %s", net, id_connect, ip, port);
     if (strcmp(UDP_server_message(message, 1), "OKREG") != 0)
         exit(1);
-
     node_list(net, 1);
     return count;
 }
 
-void handle_leave(char *net, char *id, int position, int *client_fds)
+void handle_leave(char *net, char *id, int *client_fds)
 {
     char message[13];
-    for (int i = 0; i < (position - 1); i++)
+    for (int i = 0; i < MAX_NODES; i++)
+    {
         close(client_fds[i]);
-    fprintf(stdout, "UNREG %s %s\n", net, id);
+        client_fds[i] = -1;
+    }
+
     sprintf(message, "UNREG %s %s", net, id);
     UDP_server_message(message, 1);
     node_list(net, 1);
@@ -48,12 +51,15 @@ void handle_leave(char *net, char *id, int position, int *client_fds)
 
 int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
 {
-    char message[20];
-    char response[20];
+    char message[30];
     int fd;
 
-    sprintf(message, "New %s %s %s", id, bootIP, bootTCP);
-    fd = tcp_client(bootid, atoi(bootTCP), message, response);
+    if (strcmp(id, bootid) != 0)
+    {
+        fd = tcp_client(bootIP, atoi(bootTCP));
+        sprintf(message, "NEW %s %s %s\n", id, server.my_node.ip, server.my_node.port);
+        write(fd, message, strlen(message));
+    }
     return fd;
 }
 
@@ -126,22 +132,32 @@ void handle_sr(char *net)
     /* function code here */
 }
 
-fd_set handle_menu(int *position, fd_set rfds_list, int *client_fds, int server_fd, char *ip, char *port, int intr)
+fd_set handle_menu(fd_set rfds_list, int *client_fds, int server_fd, char *ip, char *port, int intr)
 {
     char buff[1024], str_temp[10], id_temp[3], ip_temp[16], port_temp[6];
     char message[10], arg1[9], arg2[5], bootid[7], bootIP[7], bootTCP[8];
     static int flag_join = 0, flag_delete = 0, flag_create = 0;
     static char net[4];
-    int count = 0;
+    int count = 0, socket;
 
     fgets(buff, 255, stdin); // LE o que ta escrito
     sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
     if (strcmp(message, "join") == 0 && flag_join == 0)
     {
-        count = handle_join(arg1, arg2, ip, port, (*position), client_fds);
+        count = handle_join(arg1, arg2, ip, port, &socket);
         strcpy(net, arg1);
         if (count > 0)
-            FD_SET(client_fds[(*position)++], &rfds_list);
+        {
+            FD_SET(socket, &rfds_list);
+            for (int i = 0; i < MAX_NODES; i++)
+            {
+                if (client_fds[i] == -1)
+                {
+                    client_fds[i] = socket;
+                    break;
+                }
+            }
+        }
         flag_join = 1;
     }
     else if (strcmp(message, "join") == 0 && flag_join == 1)
@@ -149,7 +165,7 @@ fd_set handle_menu(int *position, fd_set rfds_list, int *client_fds, int server_
     if (strcmp(message, "leave") == 0 && flag_join == 1)
     {
         flag_join = 0;
-        handle_leave(net, server.my_node.id, (*position), client_fds);
+        handle_leave(net, server.my_node.id, client_fds);
     }
     else if (strcmp(message, "leave") == 0 && flag_join == 0)
         fprintf(stdout, "no node created\n");
@@ -174,7 +190,6 @@ fd_set handle_menu(int *position, fd_set rfds_list, int *client_fds, int server_
     if (strcmp(message, "exit") == 0)
     {
         close(server_fd);
-        FD_CLR(server_fd, &rfds_list);
         fprintf(stdout, "exiting program\n");
         exit(1);
     }
@@ -192,10 +207,10 @@ fd_set client_fd_set(fd_set rfds_list, int *client_fds, int x, int *intr)
     node_t temp;
     memset(buff, 0, 1024);
 
-    int bytes_received = read(client_fds[x], buff, 1024);
-    if (bytes_received == 0)
+    if (read(client_fds[x], buff, 1024) == 0)
     {
-        printf("asdasdasd\n");
+        close(client_fds[x]);
+        client_fds[x] = -1;
         // else if x pertence a intr -> intr = intr - x
         if (strcmp(server.my_node.id, server.VB.id) != 0)
         {
@@ -214,11 +229,9 @@ fd_set client_fd_set(fd_set rfds_list, int *client_fds, int x, int *intr)
         {
             server.VE = server.my_node;
         }
-        FD_CLR(client_fds[x], &rfds_list);
     }
     fprintf(stdout, "%s", buff);
     sscanf(buff, "%s %s %s %s", str_temp, temp.id, temp.ip, temp.port);
-
     if (strcmp(str_temp, "NEW") == 0)
     {
         if (strcmp(server.my_node.id, server.VE.id) == 0) // ancora

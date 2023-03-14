@@ -48,8 +48,6 @@ int verify_node(char *net, int count);
 
 char *random_number(char new_str[3]);
 
-int tcp_connect(int num_nodes);
-
-int tcp_client(char *ip_address, int portno, char *message, char *response);
+int tcp_client(char *ip_address, int portno);
 
 #endif /* HEADER_H */
