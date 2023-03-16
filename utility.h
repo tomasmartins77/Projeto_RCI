@@ -24,12 +24,12 @@ typedef struct node
     char id[3];
     char ip[16];
     char port[6];
+    int fd;
 } node_t;
 typedef struct server_node
 {
-    struct node VE;
-    struct node VB;
-    struct node VI[MAX_NODES];
+    struct node vb;
+    struct node vz[MAX_NODES];
     struct node my_node;
     char names[50][100];
 } server_node;
@@ -38,13 +38,13 @@ void clear(char *net);
 
 int create_server(char *ip_address, int port);
 
-char *UDP_server_message(const char *message, int print);
+void UDP_server_message(char *message, int print, char *response, int len);
 
-int node_list(char *net, int print);
+int node_list(char *net, int print, node_t *nodes);
 
-int parse_nodes(char *nodes_str, int max_nodes);
+int parse_nodes(char *nodes_str, node_t *nodes);
 
-int verify_node(char *net, int count);
+int verify_node(char *net, int count, node_t *nodes);
 
 char *random_number(char new_str[3]);
 

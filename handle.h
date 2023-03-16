@@ -16,11 +16,11 @@
 #include "utility.h"
 #include "handle.h"
 
-void handle_leave(char *net, char *id, int *client_fds);
+void handle_leave(char *net, char *id);
 
-int handle_join(char *net, char *id, char *ip, char *port, int *socket);
+int handle_join(char *net, char *id);
 
-int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP);
+void handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP);
 
 int handle_create(char *name);
 
@@ -28,14 +28,14 @@ void handle_delete(char *name);
 
 void handle_get(char *dest, char *name);
 
-void handle_st(int intr);
+void handle_st();
 
 void handle_sn();
 
 void handle_sr(char *net);
 
-fd_set handle_menu(fd_set rfds_list, int *client_fds, int server_fd, char *ip, char *port, int intr);
+fd_set handle_menu(fd_set rfds_list, char *ip, char *port);
 
-fd_set client_fd_set(fd_set rfds_list, int *client_fds, int x, int *intr);
+fd_set client_fd_set(fd_set rfds_list, int x);
 
 #endif /* HEADER_H */

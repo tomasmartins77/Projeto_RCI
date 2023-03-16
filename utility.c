@@ -1,26 +1,24 @@
 #include "utility.h"
 
-extern char buffer[1024];
 extern server_node server;
-extern node_t nodes[MAX_NODES];
 
 void clear(char *net)
 {
-    node_list(net, 1);
-    char message[13];
+    char message[13], buff[8];
     for (int i = 0; i < MAX_NODES; i++)
     {
         if (i < 10)
             sprintf(message, "UNREG %s 0%d", net, i);
         else
             sprintf(message, "UNREG %s %d", net, i);
-        UDP_server_message(message, 1);
+        UDP_server_message(message, 1, buff, sizeof(buff));
+        if (strcmp(buff, "OKUNREG") != 0)
+            exit(1);
     }
     printf("acabei\n");
-    node_list(net, 1);
 }
 
-char *UDP_server_message(const char *message, int print)
+void UDP_server_message(char *message, int print, char *response, int len)
 {
     int sockfd;
     struct sockaddr_in server_addr;
@@ -29,38 +27,38 @@ char *UDP_server_message(const char *message, int print)
 
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP);
+    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP); // mudar para receber do terminal!!!!!!!!!!!!!!!!!!!!!!
     server_addr.sin_port = htons(SERVER_PORT);
 
-    if (sendto(sockfd, message, strlen(message), 0, (const struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
+    if (sendto(sockfd, message, strlen(message), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
+        perror("sendto error\n");
         exit(1);
     }
-    int len = sizeof(server_addr);
-    int n = recvfrom(sockfd, buffer, sizeof(buffer), 0, (struct sockaddr *)&server_addr, &len);
+    int n = recvfrom(sockfd, response, len, 0, NULL, NULL);
     if (n < 0)
     {
+        perror("recvfrom error\n");
         exit(1);
     }
-    buffer[n] = '\0';
+    response[n] = '\0';
     if (print == 1)
-        fprintf(stdout, "%s\n", buffer);
+        fprintf(stdout, "%s\n", response);
     close(sockfd);
-
-    return buffer;
 }
 
-int node_list(char *net, int print)
+int node_list(char *net, int print, node_t *nodes)
 {
     char buff[1024];
-    char node_msg[255];
-    sprintf(node_msg, "NODES %s", net);
-    strcpy(buff, UDP_server_message(node_msg, print));
+    char node_msg[10];
 
-    return parse_nodes(buff, MAX_NODES);
+    sprintf(node_msg, "NODES %s", net);
+    UDP_server_message(node_msg, print, buff, sizeof(buff));
+
+    return parse_nodes(buff, nodes);
 }
 
-int parse_nodes(char *nodes_str, int max_nodes)
+int parse_nodes(char *nodes_str, node_t *nodes)
 {
     char *line;
     char *token;
@@ -77,7 +75,7 @@ int parse_nodes(char *nodes_str, int max_nodes)
     line = strtok_r(nodes_copy, "\n", &nodes_copy);
     line = strtok_r(NULL, "\n", &nodes_copy);
 
-    while (line != NULL && node_count < max_nodes)
+    while (line != NULL && node_count < MAX_NODES)
     {
         node_t node;
         // split line into tokens
@@ -109,12 +107,11 @@ int parse_nodes(char *nodes_str, int max_nodes)
     return node_count;
 }
 
-int verify_node(char *net, int count)
+int verify_node(char *id, int count, node_t *nodes)
 {
-    int i;
-    for (i = 0; i < count; i++)
+    for (int i = 0; i < count; i++)
     {
-        if (strcmp(nodes[i].id, net) == 0)
+        if (strcmp(nodes[i].id, id) == 0)
         {
             return 0;
         }
