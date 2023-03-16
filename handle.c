@@ -10,7 +10,7 @@ int handle_join(char *net, char *id)
     int count = node_list(net, 0, nodes);
     int int_connect, flag = 1;
 
-    if (count > 0)
+    if (count > 0) // bananninhas das boas
     {
         int_connect = rand() % count;
         while (verify_node(id, count, nodes) == 0)
