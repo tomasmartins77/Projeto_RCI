@@ -221,19 +221,16 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         if (server.vz[intr].fd != -1)
             break;
     }
-    printf("intr: %d\n", intr);
 
     if (read(server.vz[x].fd, buff, 1024) == 0)
     {
         close(server.vz[x].fd);
         if (x > 0)
         {
-            printf("situacao 1\n");
             server.vz[x].fd = -1;
         }
         else if (strcmp(server.my_node.id, server.vb.id) != 0) // VE saiu e nao é ancora, tem VI
         {
-            printf("situacao 2\n");
             server.vz[x] = server.vb;
             server.vz[x].fd = tcp_client(server.vb.ip, atoi(server.vb.port));
 
@@ -252,7 +249,6 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         }
         else if (intr != MAX_NODES)
         {
-            printf("situacao 3\n");
             server.vz[x] = server.vz[intr];
 
             sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
