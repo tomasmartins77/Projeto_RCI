@@ -32,6 +32,7 @@ typedef struct server_node
     struct node vz[MAX_NODES];
     struct node my_node;
     char names[50][100];
+    char net[4];
 } server_node;
 
 void clear(char *net);

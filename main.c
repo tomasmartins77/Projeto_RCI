@@ -43,8 +43,13 @@ int main(int argc, char *argv[])
         FD_ZERO(&rfds_list);                   // poem todos a 0
         FD_SET(keyfd, &rfds_list);             // adiciona o keyboard
         FD_SET(server.my_node.fd, &rfds_list); // adiciona o server
-
-        int ready = select(MAX_NODES + 1, &rfds_list, NULL, NULL, NULL); // meter o maximo de fd ativos e nao MAX_NODES
+        for (i = 0; i < MAX_NODES; i++)
+        {
+            if (server.vz[i].fd != -1)
+                FD_SET(server.vz[i].fd, &rfds_list);
+        }
+        rfds = rfds_list;
+        int ready = select(MAX_NODES + 1, &rfds, NULL, NULL, NULL); // meter o maximo de fd ativos e nao MAX_NODES
         if (ready < 0)
         { /*error*/
             fprintf(stdout, "\n error in select \n");
@@ -52,32 +57,30 @@ int main(int argc, char *argv[])
         }
         for (int i = 0; i < ready; i++)
         {
-            if (FD_ISSET(keyfd, &rfds_list) == 1)
+            if (FD_ISSET(keyfd, &rfds))
             {
-                rfds_list = handle_menu(rfds_list, argv[1], argv[2]);
+                rfds = handle_menu(rfds, argv[1], argv[2]);
             }
-            if (FD_ISSET(server.my_node.fd, &rfds_list) == 1)
+            if (FD_ISSET(server.my_node.fd, &rfds))
             {
                 if ((client_socket = accept(server.my_node.fd, (struct sockaddr *)&client_addr, &cli_addr_size)) < 0)
                 {
                     perror("accept");
                     exit(EXIT_FAILURE);
                 }
-                FD_SET(client_socket, &rfds_list);
                 for (i = 0; i < MAX_NODES; i++)
                 {
                     if (server.vz[i].fd == -1)
                     {
                         server.vz[i].fd = client_socket;
-                        FD_SET(server.vz[i].fd, &rfds_list);
                         break;
                     }
                 }
             }
             for (int x = 0; x < MAX_NODES; x++)
             {
-                if (FD_ISSET(server.vz[x].fd, &rfds_list) == 1)
-                    rfds_list = client_fd_set(rfds_list, x);
+                if (FD_ISSET(server.vz[x].fd, &rfds))
+                    rfds = client_fd_set(rfds, x);
             }
         }
     }

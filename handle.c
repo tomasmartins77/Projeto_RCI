@@ -53,7 +53,15 @@ void handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP
 void handle_leave(char *net, char *id)
 {
     char message[13], response[8];
-    // dar close das merdas
+    for (int i = 0; i < MAX_NODES; i++)
+    {
+        if (server.vz[i].fd != -1)
+        {
+            close(server.vz[i].fd);
+            server.vz[i].fd = -1;
+        }
+    }
+
     sprintf(message, "UNREG %s %s", net, id);
     UDP_server_message(message, 1, response, sizeof(response));
     if (strcmp(response, "OKUNREG") != 0)
@@ -135,15 +143,15 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
     char buff[1024], str_temp[10], id_temp[3], ip_temp[16], port_temp[6];
     char message[10], arg1[9], arg2[5], bootid[7], bootIP[7], bootTCP[8];
     static int flag_join = 0, flag_delete = 0, flag_create = 0;
-    static char net[4];
     int count = 0;
 
     fgets(buff, 255, stdin); // LE o que ta escrito
     sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
     if (strcmp(message, "join") == 0 && flag_join == 0)
     {
+        strcpy(server.net, arg1);
         count = handle_join(arg1, arg2);
-        strcpy(net, arg1);
+
         if (count > 0)
             FD_SET(server.vz[0].fd, &rfds_list);
         flag_join = 1;
@@ -152,8 +160,9 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
         fprintf(stdout, "node already created\n");
     if (strcmp(message, "djoin") == 0 && flag_join == 0)
     {
+        strcpy(server.net, arg1);
         handle_djoin(arg1, arg2, bootid, bootIP, bootTCP);
-        strcpy(net, arg1);
+
         if (count > 0)
             FD_SET(server.vz[0].fd, &rfds_list);
         flag_join = 1;
@@ -163,7 +172,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
     if (strcmp(message, "leave") == 0 && flag_join == 1)
     {
         flag_join = 0;
-        handle_leave(net, server.my_node.id);
+        handle_leave(server.net, server.my_node.id);
     }
     else if (strcmp(message, "leave") == 0 && flag_join == 0)
         fprintf(stdout, "no node created\n");
@@ -201,34 +210,66 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
 fd_set client_fd_set(fd_set rfds_list, int x)
 {
     char buff[1024], str_temp[10];
+    char message[50], response[6];
     node_t temp;
     memset(buff, 0, 1024);
     int save = server.vz[x].fd;
+    int intr = 0, i;
+
+    for (intr = 1; intr < MAX_NODES; intr++)
+    {
+        if (server.vz[intr].fd != -1)
+            break;
+    }
+    printf("intr: %d\n", intr);
 
     if (read(server.vz[x].fd, buff, 1024) == 0)
     {
-        /*
         close(server.vz[x].fd);
-        server.vz[x].fd = -1;
-        // else if x pertence a intr -> intr = intr - x
-        if (strcmp(server.my_node.id, server.vb.id) != 0)
+        if (x > 0)
         {
+            printf("situacao 1\n");
+            server.vz[x].fd = -1;
+        }
+        else if (strcmp(server.my_node.id, server.vb.id) != 0) // VE saiu e nao é ancora, tem VI
+        {
+            printf("situacao 2\n");
             server.vz[x] = server.vb;
-            sprintf(buff, "NEW %s %s %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
-            write(server.vz[x].fd, buff, 1024);
-            sprintf(buff, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
+            server.vz[x].fd = tcp_client(server.vb.ip, atoi(server.vb.port));
+
+            sprintf(message, "NEW %s %s %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
+            write(server.vz[x].fd, message, strlen(message));
+
+            sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
             // for loop a enviar EXTERN aos intr
-            for (int i = 0; i < 8; i++)
+            for (i = 1; i < MAX_NODES; i++)
             {
+                if (server.vz[i].fd != -1)
+                {
+                    write(server.vz[i].fd, message, strlen(message));
+                }
             }
         }
-        // else if intr != NULL -> escolhe intr random e EX = intr random
-        //  envia EXTERN para intr     intr = intr - intr random
+        else if (intr != MAX_NODES)
+        {
+            printf("situacao 3\n");
+            server.vz[x] = server.vz[intr];
+
+            sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
+            for (i = 1; i < MAX_NODES; i++)
+            {
+                if (server.vz[i].fd != -1)
+                {
+                    write(server.vz[i].fd, message, strlen(message));
+                }
+            }
+            server.vz[intr].fd = -1;
+        }
         else
         {
             server.vz[x] = server.my_node;
+            server.vz[x].fd = -1;
         }
-        */
     }
     else
     {
@@ -238,10 +279,9 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         {
             server.vz[x] = temp;
             server.vz[x].fd = save;
+            sprintf(buff, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
+            write(server.vz[x].fd, buff, 1024);
         }
-        sprintf(buff, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
-        write(server.vz[x].fd, buff, 1024);
-
         if (strcmp(str_temp, "EXTERN") == 0)
         {
             server.vb = temp;
