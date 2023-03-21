@@ -36,6 +36,8 @@ void handle_sr(char *net);
 
 int dad_get(char*,char*,char*);
 
+void withdraw(int x);
+
 fd_set handle_menu(fd_set rfds_list, char *ip, char *port);
 
 fd_set client_fd_set(fd_set rfds_list, int x);

@@ -89,7 +89,7 @@ int handle_create(char *name)
 void handle_delete(char *name)
 {
     int i, flag = 0;
-    for (i = 0; i < 50; i++)
+    for (i = 0; i < MAX_NODES; i++)
     {
         if (strcmp(server.names[i], name) == 0)
         {
@@ -235,6 +235,9 @@ fd_set client_fd_set(fd_set rfds_list, int x)
 
     if (read(server.vz[x].fd, buff, 1024) == 0)
     {
+        printf("%s\n",server.vz[x].id);
+        withdraw(atoi(server.vz[x].id));
+        
         close(server.vz[x].fd);
         if (x > 0)
         {
@@ -277,6 +280,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             server.vz[x] = server.my_node;
             server.vz[x].fd = -1;
         }
+
     }
     else
     {
@@ -347,6 +351,10 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 }
             }
         }
+        if (strcmp(str_temp, "WITHDRAW")==0)
+        {
+            withdraw(atoi(temp.id));
+        }
     }
 
     return rfds_list;
@@ -400,8 +408,24 @@ int dad_get(char *dest, char *name,char* origem)
         }
     }
 
-
-
     return 0;
 
+}
+
+void withdraw(int x)
+{
+    char buff[100];
+    char x_c[3]="";
+    sprintf(x_c,"%02d",x);
+    exptable[x]=0;   
+    for (int i = 0; i < MAX_NODES; i++)
+        {
+            if(exptable[i]==x)
+                exptable[i]=0;
+            if(i!=x)
+                {
+                    sprintf(buff, "WITHDRAW %s\n",x_c);
+                    write(server.vz[i].fd, buff, strlen(buff));
+                }
+        }
 }
