@@ -27,7 +27,7 @@ int handle_join(char *net, char *id)
 
 void handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
 {
-    char message[50], response[6];
+    char message[50] = "", response[6];
     strcpy(server.my_node.id, id);
     if (strcmp(id, bootid) != 0)
     {
@@ -35,6 +35,7 @@ void handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP
 
         sprintf(message, "NEW %s %s %s\n", id, server.my_node.ip, server.my_node.port);
         write(server.vz[0].fd, message, strlen(message));
+        
     }
     else
         server.vz[0].fd = -1;
@@ -219,7 +220,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
 
 fd_set client_fd_set(fd_set rfds_list, int x)
 {
-    char buff[1024], str_temp[10];
+    char buff[1024] = "", str_temp[10];
     char message[50], response[6];
     node_t temp;
     memset(buff, 0, 1024);
@@ -286,7 +287,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             server.vz[x] = temp;
             server.vz[x].fd = save;
             sprintf(buff, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
-            write(server.vz[x].fd, buff, 1024);
+            write(server.vz[x].fd, buff, strlen(buff));
             exptable[atoi(temp.id)]=atoi(temp.id);
         }
         if (strcmp(str_temp, "EXTERN") == 0)
@@ -302,14 +303,14 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             if (res==1)
             {
                 sprintf(buff, "CONTENT %s %s %s\n", temp.ip, temp.id, temp.port);
-                write(server.vz[x].fd, buff, 1024);
+                write(server.vz[x].fd, buff, strlen(buff));
 
             }
             if (res==2)
             {
                 printf("daqui------------------\n");
                 sprintf(buff, "NOCONTENT %s %s %s\n", temp.ip, temp.id, temp.port);
-                write(server.vz[x].fd, buff, 1024);
+                write(server.vz[x].fd, buff, strlen(buff));
             }
 
         }
@@ -325,7 +326,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                     {
                         printf("daqui???asasdasdsadads?\n");
                         sprintf(buff, "NOCONTENT %s %s %s\n", temp.id, temp.ip, temp.port);
-                        write(server.vz[i].fd, buff, 1024);
+                        write(server.vz[i].fd, buff, strlen(buff));
                     }
                 }
             }
@@ -341,7 +342,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                     if(atoi(server.vz[i].id)==temp_ip)
                     {
                         sprintf(buff, "CONTENT %s %s %s\n", temp.id, temp.ip, temp.port);
-                        write(server.vz[i].fd, buff, 1024);
+                        write(server.vz[i].fd, buff, strlen(buff));
                     }
                 }
             }
@@ -383,7 +384,7 @@ int dad_get(char *dest, char *name,char* origem)
         {
             if(atoi(server.vz[i].id)==path)
             {
-                write(server.vz[i].fd, buff, 255);
+                write(server.vz[i].fd, buff, strlen(buff));
                 break;
             }
         }
@@ -394,7 +395,7 @@ int dad_get(char *dest, char *name,char* origem)
         {
             if(server.vz[i].fd!=-1 && atoi(server.vz[i].id)!=atoi(origem))
             {
-                write(server.vz[i].fd, buff, 255);
+                write(server.vz[i].fd, buff, strlen(buff));
             } 
         }
     }
