@@ -26,13 +26,15 @@ int handle_create(char *name);
 
 void handle_delete(char *name);
 
-void handle_get(char *dest, char *name);
+int handle_get(char *dest, char *name);
 
 void handle_st();
 
 void handle_sn();
 
 void handle_sr(char *net);
+
+int dad_get(char*,char*,char*);
 
 fd_set handle_menu(fd_set rfds_list, char *ip, char *port);
 

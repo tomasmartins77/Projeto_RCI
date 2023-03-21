@@ -2,6 +2,7 @@
 
 extern node_t nodes[MAX_NODES];
 extern server_node server;
+int exptable[100]={0};
 
 int handle_join(char *net, char *id)
 {
@@ -103,9 +104,12 @@ void handle_delete(char *name)
     }
 }
 
-void handle_get(char *dest, char *name)
+int handle_get(char *dest, char *name)
 {
-    /* function code here */
+
+   int dad=0;
+   dad=dad_get(dest,name,server.my_node.id);
+   return dad;
 }
 
 void handle_st()
@@ -134,8 +138,14 @@ void handle_sn()
 }
 
 void handle_sr(char *net)
-{
-    /* function code here */
+{ 
+  for (int i = 0; i < 99; i++)
+   {
+       if (exptable[i]!=0)
+       {
+           printf("%d-->%d\n",i,exptable[i]);
+       }
+   }/* function code here */
 }
 
 fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
@@ -269,7 +279,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
     }
     else
     {
-        fprintf(stdout, "%s", buff);
+        fprintf(stdout, "recebi-%s", buff);
         sscanf(buff, "%s %s %s %s", str_temp, temp.id, temp.ip, temp.port);
         if (strcmp(str_temp, "NEW") == 0)
         {
@@ -277,12 +287,120 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             server.vz[x].fd = save;
             sprintf(buff, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
             write(server.vz[x].fd, buff, 1024);
+            exptable[atoi(temp.id)]=atoi(temp.id);
         }
         if (strcmp(str_temp, "EXTERN") == 0)
         {
             server.vb = temp;
+            exptable[atoi(server.vz[x].id)]=atoi(server.vz[x].id);
+            exptable[atoi(temp.id)]=atoi(server.vz[x].id);
+        }
+        if (strcmp(str_temp, "QUERY") == 0)
+        {
+            exptable[atoi(temp.ip)]=atoi(server.vz[x].id);
+            int res=dad_get(temp.id,temp.port,temp.ip);
+            if (res==1)
+            {
+                sprintf(buff, "CONTENT %s %s %s\n", temp.ip, temp.id, temp.port);
+                write(server.vz[x].fd, buff, 1024);
+
+            }
+            if (res==2)
+            {
+                printf("daqui------------------\n");
+                sprintf(buff, "NOCONTENT %s %s %s\n", temp.ip, temp.id, temp.port);
+                write(server.vz[x].fd, buff, 1024);
+            }
+
+        }
+        if (strcmp(str_temp, "NOCONTENT")==0)
+        {
+            exptable[atoi(temp.ip)]=atoi(server.vz[x].id);
+            if (strcmp(temp.id,server.my_node.id)!=0)
+            {
+                int temp_ip=exptable[atoi(temp.id)];
+                for (int i = 0; i < 99; i++)
+                {
+                    if(atoi(server.vz[i].id)==temp_ip)
+                    {
+                        printf("daqui???asasdasdsadads?\n");
+                        sprintf(buff, "NOCONTENT %s %s %s\n", temp.id, temp.ip, temp.port);
+                        write(server.vz[i].fd, buff, 1024);
+                    }
+                }
+            }
+        }
+        if (strcmp(str_temp, "CONTENT")==0)
+        {
+            exptable[atoi(temp.ip)]=atoi(server.vz[x].id);
+            if (strcmp(temp.id,server.my_node.id)!=0)
+            {
+                int temp_ip=exptable[atoi(temp.id)];
+                for (int i = 0; i < 99; i++)
+                {
+                    if(atoi(server.vz[i].id)==temp_ip)
+                    {
+                        sprintf(buff, "CONTENT %s %s %s\n", temp.id, temp.ip, temp.port);
+                        write(server.vz[i].fd, buff, 1024);
+                    }
+                }
+            }
         }
     }
 
     return rfds_list;
+}
+
+
+int dad_get(char *dest, char *name,char* origem)
+{
+
+    if (strcmp(dest,server.my_node.id)==0)
+    {
+        printf("tou no destino\n");
+        for (int i = 0; i < 99; i++)
+        {
+
+            if (strcmp(name,server.names[i])==0)//tenho a info
+            {
+                return 1;
+            }
+            if (i==98)//n tenho a info
+            {
+                return 2;
+            }
+        }
+    }
+    char buff[255];
+    int path=-1;
+    int dest_int=atoi(dest);
+
+    if(exptable[dest_int]!=0)//temos entrada na tabela de espedição
+    {
+        sprintf(buff, "QUERY %s %s %s \n", dest, origem, name);
+        path = exptable[dest_int];
+        for (int i = 0; i < 99; i++)
+        {
+            if(atoi(server.vz[i].id)==path)
+            {
+                write(server.vz[i].fd, buff, 255);
+                break;
+            }
+        }
+    }else
+    {
+        sprintf(buff, "QUERY %s %s %s\n", dest, origem, name);
+        for (int i = 0; i < 99; i++)
+        {
+            if(server.vz[i].fd!=-1 && atoi(server.vz[i].id)!=atoi(origem))
+            {
+                write(server.vz[i].fd, buff, 255);
+            } 
+        }
+    }
+
+
+
+    return 0;
+
 }
