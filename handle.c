@@ -5,31 +5,44 @@ extern server_node server;
 int handle_join(char *net, char *id)
 {
     node_t nodes[MAX_NODES];
-
     int count = node_list(net, 0, nodes);
-    int int_connect, flag = 1;
+    int int_connect, i;
 
     if (count > 0)
     {
-        int_connect = rand() % count;
-        while (verify_node(id, count, nodes) == 0)
-            strcpy(id, random_number(id));
+        while (1)
+        {
+            int_connect = rand() % count;
+            while (verify_node(id, count, nodes) == 0)
+                strcpy(id, random_number(id));
 
-        handle_djoin(net, id, nodes[int_connect].id, nodes[int_connect].ip, nodes[int_connect].port);
+            if (handle_djoin(net, id, nodes[int_connect].id, nodes[int_connect].ip, nodes[int_connect].port) == 0)
+                break;
+            strcpy(nodes[int_connect].ip, "0");
+            for (i = 0; i < count; i++)
+            {
+                if (strcmp(nodes[i].ip, "0") != 0)
+                    break;
+            }
+            if (i == count)
+                break;
+        }
     }
-    else
+    else if (count == 0 || i == count)
         handle_djoin(net, id, id, server.my_node.ip, server.my_node.port);
 
     return count;
 }
 
-void handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
+int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
 {
     char message[50] = "", response[6];
     strcpy(server.my_node.id, id);
     if (strcmp(id, bootid) != 0)
     {
         server.vz[0].fd = tcp_client(bootIP, atoi(bootTCP));
+        if (server.vz[0].fd == -1)
+            return -1;
 
         sprintf(message, "NEW %s %s %s\n", id, server.my_node.ip, server.my_node.port);
         write(server.vz[0].fd, message, strlen(message));
@@ -44,9 +57,10 @@ void handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP
     server.vb = server.my_node;
 
     sprintf(message, "REG %s %s %s %s", net, id, server.my_node.ip, server.my_node.port);
-    UDP_server_message(message, 1, response, sizeof(response));
-    if (strcmp(response, "OKREG") != 0)
-        exit(1);
+    UDP_server_message(message, response, sizeof(response));
+    if (strcmp(response, "OKREG") == 0)
+        fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[0].id);
+    return 0;
 }
 
 void handle_leave(char *net, char *id)
@@ -66,9 +80,9 @@ void handle_leave(char *net, char *id)
     }
 
     sprintf(message, "UNREG %s %s", net, id);
-    UDP_server_message(message, 1, response, sizeof(response));
-    if (strcmp(response, "OKUNREG") != 0)
-        exit(1);
+    UDP_server_message(message, response, sizeof(response));
+    if (strcmp(response, "OKUNREG") == 0)
+        fprintf(stdout, "%s left the network %s\n", server.my_node.id, server.net);
 }
 
 int handle_create(char *name)
@@ -153,9 +167,9 @@ int handle_get(char *dest, char *name, char *origem)
 
 void handle_st()
 {
-    fprintf(stdout, "Vizinho externo: %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
-    fprintf(stdout, "Vizinho Backup: %s %s %s\n", server.vb.id, server.vb.ip, server.vb.port);
-    fprintf(stdout, "Vizinhos internos:\n");
+    fprintf(stdout, "Extern: %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
+    fprintf(stdout, "Backup: %s %s %s\n", server.vb.id, server.vb.ip, server.vb.port);
+    fprintf(stdout, "Interns:\n");
     for (int i = 1; i < MAX_NODES; i++)
     {
         if (server.vz[i].fd != -1)

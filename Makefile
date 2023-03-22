@@ -3,7 +3,7 @@
 # compilador a utilizar
 CC= gcc
 # flags para compilar
-CFLAGS= -g
+CFLAGS= -g -Wall
 # flags para linkar, incluíndo a biblioteca matemática
 LDFLAGS= -lm
 # gerar variáveis com listas ficheiros de cada tipo para usar nas várias regras

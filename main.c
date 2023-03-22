@@ -26,7 +26,7 @@ server_node server;
 int main(int argc, char *argv[])
 {
     srand(time(NULL));
-    int keyfd = 0, intr = 0, sd, max_sd, client_socket, i;
+    int keyfd = STDIN_FILENO, client_socket, i;
     fd_set rfds_list, rfds;
 
     for (i = 0; i < MAX_NODES; i++)

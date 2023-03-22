@@ -12,6 +12,7 @@
 #include <netinet/in.h>
 #include <net/if.h>
 #include <netdb.h>
+#include <sys/time.h>
 #include <time.h>
 #include "utility.h"
 #include "connections.h"
@@ -47,5 +48,7 @@ int parse_nodes(char *, node_t *);
 int verify_node(char *, int, node_t *);
 
 char *random_number(char *);
+
+void timeout(int, int);
 
 #endif /* HEADER_H */

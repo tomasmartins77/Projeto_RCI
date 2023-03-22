@@ -22,7 +22,7 @@ void handle_leave(char *, char *);
 
 int handle_join(char *, char *);
 
-void handle_djoin(char *, char *, char *, char *, char *);
+int handle_djoin(char *, char *, char *, char *, char *);
 
 int handle_create(char *);
 

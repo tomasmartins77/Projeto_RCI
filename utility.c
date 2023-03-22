@@ -11,7 +11,7 @@ void clear(char *net)
             sprintf(message, "UNREG %s 0%d", net, i);
         else
             sprintf(message, "UNREG %s %d", net, i);
-        UDP_server_message(message, 1, buff, sizeof(buff));
+        UDP_server_message(message, buff, sizeof(buff));
         if (strcmp(buff, "OKUNREG") != 0)
             exit(1);
     }
@@ -24,7 +24,7 @@ int node_list(char *net, int print, node_t *nodes)
     char node_msg[10];
 
     sprintf(node_msg, "NODES %s", net);
-    UDP_server_message(node_msg, print, buff, sizeof(buff));
+    UDP_server_message(node_msg, buff, sizeof(buff));
 
     return parse_nodes(buff, nodes);
 }
@@ -82,10 +82,8 @@ int verify_node(char *id, int count, node_t *nodes)
 {
     for (int i = 0; i < count; i++)
     {
-        if (strcmp(nodes[i].id, id) == 0)
-        {
+        if (strcmp(nodes[i].id, id) == 0 && strcmp(nodes[i].ip, "0") != 0)
             return 0;
-        }
     }
     return 1;
 }
@@ -95,4 +93,17 @@ char *random_number(char *new_str)
     int number = rand() % 100;
     sprintf(new_str, "%02d", number);
     return new_str;
+}
+
+void timeout(int time, int socket)
+{
+    struct timeval timeout;
+    timeout.tv_sec = time;
+    timeout.tv_usec = 0;
+    fd_set rfds;
+    FD_ZERO(&rfds);
+    FD_SET(socket, &rfds);
+    select(socket + 1, &rfds, NULL, NULL, &timeout);
+    if (FD_ISSET(socket, &rfds))
+        return;
 }

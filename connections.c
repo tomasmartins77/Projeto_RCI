@@ -2,7 +2,7 @@
 
 extern server_node server;
 
-void UDP_server_message(char *message, int print, char *response, int len)
+void UDP_server_message(char *message, char *response, int len)
 {
     int sockfd;
     struct sockaddr_in server_addr;
@@ -19,6 +19,7 @@ void UDP_server_message(char *message, int print, char *response, int len)
         perror("sendto error\n");
         exit(1);
     }
+    timeout(1, sockfd);
     int n = recvfrom(sockfd, response, len, 0, NULL, NULL);
     if (n < 0)
     {
@@ -26,8 +27,6 @@ void UDP_server_message(char *message, int print, char *response, int len)
         exit(1);
     }
     response[n] = '\0';
-    if (print == 1)
-        fprintf(stdout, "%s\n", response);
     close(sockfd);
 }
 
@@ -56,8 +55,8 @@ int tcp_client(char *ip_address, int portno)
 
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
     {
-        fprintf(stdout, "\nConnection Failed \n");
-        exit(-1);
+        fprintf(stdout, "\nConnection Failed, trying new connection\n");
+        return -1;
     }
     return sockfd;
 }
