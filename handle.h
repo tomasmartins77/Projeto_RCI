@@ -30,6 +30,8 @@ void handle_delete(char *);
 
 int handle_get(char *, char *, char *);
 
+void handle_cr();
+
 void handle_st();
 
 void handle_sn();

@@ -6,7 +6,7 @@ int handle_join(char *net, char *id)
 {
     node_t nodes[MAX_NODES];
     int count = node_list(net, 0, nodes);
-    int int_connect, i;
+    int int_connect, i=0;
 
     if (count > 0)
     {
@@ -36,6 +36,7 @@ int handle_join(char *net, char *id)
 
 int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
 {
+    printf("%s %s\n", bootid, bootIP);
     char message[50] = "", response[6];
     strcpy(server.my_node.id, id);
     if (strcmp(id, bootid) != 0)
@@ -55,6 +56,7 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
     strcpy(server.vz[0].port, bootTCP);
 
     server.vb = server.my_node;
+        fprintf(stdout, "REG %s %s %s %s", net, id, server.my_node.ip, server.my_node.port);
 
     sprintf(message, "REG %s %s %s %s", net, id, server.my_node.ip, server.my_node.port);
     UDP_server_message(message, response, sizeof(response));
@@ -198,5 +200,13 @@ void handle_sr()
         {
             printf("%d-->%d\n", i, server.exptable[i]);
         }
+    }
+}
+
+void handle_cr()
+{
+    for (int i = 0; i < 99; i++)
+    {
+        server.exptable[i]=0;
     }
 }
