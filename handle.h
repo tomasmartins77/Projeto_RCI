@@ -15,31 +15,25 @@
 #include <time.h>
 #include "utility.h"
 #include "handle.h"
+#include "connections.h"
+#include "fd_functions.h"
 
-void handle_leave(char *net, char *id);
+void handle_leave(char *, char *);
 
-int handle_join(char *net, char *id);
+int handle_join(char *, char *);
 
-void handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP);
+void handle_djoin(char *, char *, char *, char *, char *);
 
-int handle_create(char *name);
+int handle_create(char *);
 
-void handle_delete(char *name);
+void handle_delete(char *);
 
-int handle_get(char *dest, char *name);
+int handle_get(char *, char *, char *);
 
 void handle_st();
 
 void handle_sn();
 
-void handle_sr(char *net);
+void handle_sr();
 
-int dad_get(char*,char*,char*);
-
-void withdraw(int x);
-
-fd_set handle_menu(fd_set rfds_list, char *ip, char *port);
-
-fd_set client_fd_set(fd_set rfds_list, int x);
-
-#endif /* HEADER_H */
+#endif

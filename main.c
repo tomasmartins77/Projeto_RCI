@@ -11,13 +11,15 @@
 #include <netdb.h>
 #include <time.h>
 
+#include "handle.h"
+#include "utility.h"
+#include "connections.h"
+#include "fd_functions.h"
+
 #define max(A, B) ((A) >= (B) ? (A) : (B))
 #define MAX_NODES 99
 #define SERVER_IP "193.136.138.142" // Change to the IP address of your server
 #define SERVER_PORT 59000           // Change to the port number of your server
-
-#include "handle.h"
-#include "utility.h"
 
 server_node server;
 
@@ -28,7 +30,11 @@ int main(int argc, char *argv[])
     fd_set rfds_list, rfds;
 
     for (i = 0; i < MAX_NODES; i++)
+    {
         server.vz[i].fd = -1;
+        server.exptable[i] = 0;
+    }
+
     struct sockaddr_in client_addr;
     socklen_t cli_addr_size = sizeof(client_addr);
 
