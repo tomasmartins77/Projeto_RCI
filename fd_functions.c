@@ -10,6 +10,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
 
     fgets(buff, 255, stdin); // LE o que ta escrito
     sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
+    fprintf(stdout, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
     if (strcmp(message, "join") == 0 && flag_join == 0)
     {
         strcpy(server.net, arg1);
@@ -26,7 +27,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
         strcpy(server.net, arg1);
         handle_djoin(arg1, arg2, bootid, bootIP, bootTCP);
 
-        if (count > 0)
+        if (strcmp(arg2, bootid) == 0)
             FD_SET(server.vz[0].fd, &rfds_list);
         flag_join = 1;
     }
@@ -71,6 +72,8 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
     }
     else if (strcmp(message, "clear") == 0)
         clear(arg1);
+    else if (strcmp(message, "clear route") == 0 || strcmp(message, "cr") == 0)
+        handle_cr();
     else
         fprintf(stdout, "invalid command\n");
     return rfds_list;
