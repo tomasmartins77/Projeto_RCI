@@ -4,7 +4,7 @@ extern server_node server;
 
 fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
 {
-    char message[10], arg1[9], arg2[5], bootid[7], bootIP[7], bootTCP[8], buff[255];
+    char message[10], arg1[9], arg2[5], bootid[7], bootIP[16], bootTCP[8], buff[255];
     static int flag_join = 0, flag_create = 0;
     int count = 0;
 
