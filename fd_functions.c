@@ -26,7 +26,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
         strcpy(server.net, arg1);
         handle_djoin(arg1, arg2, bootid, bootIP, bootTCP);
 
-        if (strcmp(arg2, bootid) == 0)
+        if (strcmp(arg2, bootid) != 0)
             FD_SET(server.vz[0].fd, &rfds_list);
         flag_join = 1;
     }
@@ -80,7 +80,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
 
 fd_set client_fd_set(fd_set rfds_list, int x)
 {
-    char buff[1024] = "", str_temp[10] = "", message[50] = "";
+    char buff[1024] = "", str_temp[10] = "", message[50] = "", origin[3] = "", dest[3] = "", content[100] = "";
     node_t temp;
     memset(buff, 0, 1024);
     int save = server.vz[x].fd;
@@ -88,7 +88,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
 
     for (intr = 1; intr < MAX_NODES; intr++)
     {
-        if (server.vz[intr].fd != -2)
+        if (server.vz[intr].active == 1)
             break;
     }
 
@@ -100,7 +100,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         close(server.vz[x].fd);
         if (x > 0)
         {
-            server.vz[x].fd = -2;
+            server.vz[x].active = 0;
         }
         else if (strcmp(server.my_node.id, server.vb.id) != 0) // VE saiu e nao é ancora, tem VI
         {
@@ -115,7 +115,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             // for loop a enviar EXTERN aos intr
             for (i = 1; i < MAX_NODES; i++)
             {
-                if (server.vz[i].fd != -2)
+                if (server.vz[i].active == 1)
                 {
                     write(server.vz[i].fd, message, strlen(message));
                 }
@@ -128,17 +128,17 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
             for (i = 1; i < MAX_NODES; i++)
             {
-                if (server.vz[i].fd != -2)
+                if (server.vz[i].active == 1)
                 {
                     write(server.vz[i].fd, message, strlen(message));
                 }
             }
-            server.vz[intr].fd = -2;
+            server.vz[intr].fd = 0;
         }
         else
         {
             server.vz[x] = server.my_node;
-            server.vz[x].fd = -2;
+            server.vz[x].active = 0;
         }
     }
     else
@@ -163,23 +163,23 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         }
         if (strcmp(str_temp, "QUERY") == 0)
         {
-            sscanf(buff, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
-            server.exptable[atoi(temp.ip)] = atoi(server.vz[x].id);
-            int res = handle_get(temp.id, temp.port, temp.ip);
+            sscanf(buff, "%s %s %s %s\n", str_temp, dest, origin, content);
+            server.exptable[atoi(origin)] = atoi(server.vz[x].id);
+            int res = handle_get(dest, content, origin);
             if (res == 1)
             {
-                sprintf(buff, "CONTENT %s %s %s\n", temp.ip, temp.id, temp.port);
+                sprintf(buff, "CONTENT %s %s %s\n", origin, dest, content);
                 write(server.vz[x].fd, buff, strlen(buff));
             }
             if (res == 2)
             {
-                sprintf(buff, "NOCONTENT %s %s %s\n", temp.ip, temp.id, temp.port);
+                sprintf(buff, "NOCONTENT %s %s %s\n", origin, dest, content);
                 write(server.vz[x].fd, buff, strlen(buff));
             }
         }
         if (strcmp(str_temp, "NOCONTENT") == 0)
         {
-            sscanf(buff, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
+            sscanf(buff, "%s %s %s %s\n", str_temp, origin, dest, content);
             server.exptable[atoi(temp.ip)] = atoi(server.vz[x].id);
             if (strcmp(temp.id, server.my_node.id) != 0)
             {
@@ -188,7 +188,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 {
                     if (atoi(server.vz[i].id) == temp_ip)
                     {
-                        sprintf(buff, "NOCONTENT %s %s %s\n", temp.id, temp.ip, temp.port);
+                        sprintf(buff, "NOCONTENT %s %s %s\n", origin, dest, content);
                         write(server.vz[i].fd, buff, strlen(buff));
                     }
                 }
@@ -198,7 +198,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         }
         if (strcmp(str_temp, "CONTENT") == 0)
         {
-            sscanf(buff, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
+            sscanf(buff, "%s %s %s %s\n", str_temp, origin, dest, content);
             server.exptable[atoi(temp.ip)] = atoi(server.vz[x].id);
             if (strcmp(temp.id, server.my_node.id) != 0)
             {
@@ -207,7 +207,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 {
                     if (atoi(server.vz[i].id) == temp_ip)
                     {
-                        sprintf(buff, "CONTENT %s %s %s\n", temp.id, temp.ip, temp.port);
+                        sprintf(buff, "CONTENT %s %s %s\n", origin, dest, content);
                         write(server.vz[i].fd, buff, strlen(buff));
                     }
                 }
@@ -217,7 +217,8 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         }
         if (strcmp(str_temp, "WITHDRAW") == 0)
         {
-            withdraw(atoi(temp.id));
+            sscanf(buff, "%s %s\n", str_temp, dest);
+            withdraw(atoi(dest));
         }
     }
 

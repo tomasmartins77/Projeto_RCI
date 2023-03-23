@@ -25,13 +25,14 @@ server_node server;
 
 int main(int argc, char *argv[])
 {
+    char connect_ip[16], connect_port[6];
     srand(time(NULL));
     int keyfd = STDIN_FILENO, client_socket, i;
     fd_set rfds_list, rfds;
 
     for (i = 0; i < MAX_NODES; i++)
     {
-        server.vz[i].fd = -2;
+        server.vz[i].active = 0;
         server.exptable[i] = 0;
     }
 
@@ -43,6 +44,13 @@ int main(int argc, char *argv[])
     strcpy(server.my_node.port, argv[2]);
 
     server.my_node.fd = create_server(server.my_node.ip, atoi(server.my_node.port));
+    server.my_node.active = 1;
+
+    if (argc == 5)
+    {
+        strcpy(connect_ip, argv[3]);
+        strcoy(connect_port, argv[4]);
+    }
 
     while (1)
     {
@@ -51,7 +59,7 @@ int main(int argc, char *argv[])
         FD_SET(server.my_node.fd, &rfds_list); // adiciona o server
         for (i = 0; i < MAX_NODES; i++)
         {
-            if (server.vz[i].fd != -2)
+            if (server.vz[i].active == 1)
                 FD_SET(server.vz[i].fd, &rfds_list);
         }
         rfds = rfds_list;
@@ -76,17 +84,21 @@ int main(int argc, char *argv[])
                 }
                 for (i = 0; i < MAX_NODES; i++)
                 {
-                    if (server.vz[i].fd == -2)
+                    if (server.vz[i].active == 0)
                     {
                         server.vz[i].fd = client_socket;
+                        server.vz[i].active = 1;
                         break;
                     }
                 }
             }
             for (int x = 0; x < MAX_NODES; x++)
             {
-                if (FD_ISSET(server.vz[x].fd, &rfds))
-                    rfds = client_fd_set(rfds, x);
+                if (server.vz[x].active == 1)
+                {
+                    if (FD_ISSET(server.vz[x].fd, &rfds))
+                        rfds = client_fd_set(rfds, x);
+                }
             }
         }
     }

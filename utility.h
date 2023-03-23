@@ -28,6 +28,7 @@ typedef struct node
     char ip[16];
     char port[6];
     int fd;
+    int active;
 } node_t;
 typedef struct server_node
 {
