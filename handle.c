@@ -5,8 +5,10 @@ extern server_node server;
 int handle_join(char *net, char *id)
 {
     node_t nodes[MAX_NODES];
+    inicialize_nodes(nodes);
     int count = node_list(net, 0, nodes);
-    int int_connect, i=0;
+    int int_connect, i = 0;
+    char id_temp[3] = "";
 
     if (count > 0)
     {
@@ -14,14 +16,17 @@ int handle_join(char *net, char *id)
         {
             int_connect = rand() % count;
             while (verify_node(id, count, nodes) == 0)
-                strcpy(id, random_number(id));
+            {
+                strcpy(id_temp, random_number(id));
+                strcpy(id, id_temp);
+            }
 
             if (handle_djoin(net, id, nodes[int_connect].id, nodes[int_connect].ip, nodes[int_connect].port) == 0)
                 break;
+
             strcpy(nodes[int_connect].ip, "0");
             for (i = 0; i <= count; i++)
             {
-                printf("estou   : %d\n", i);
                 if (strcmp(nodes[i].ip, "0") != 0)
                     break;
             }
@@ -31,17 +36,15 @@ int handle_join(char *net, char *id)
     }
     if (count == 0 || i == count)
     {
-        printf("entreiii\n");
         handle_djoin(net, id, id, server.my_node.ip, server.my_node.port);
     }
-        printf("%d nao entrei %d\n", count, i);
 
     return count;
 }
 
 int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
 {
-    char message[50] = "", response[6];
+    char message[50] = "", response[6] = "";
     strcpy(server.my_node.id, id);
     if (strcmp(id, bootid) != 0)
     {
@@ -53,7 +56,7 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
         write(server.vz[0].fd, message, strlen(message));
     }
     else
-        server.vz[0].fd = -1;
+        server.vz[0].fd = -2;
 
     strcpy(server.vz[0].id, bootid);
     strcpy(server.vz[0].ip, bootIP);
@@ -70,17 +73,20 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
 
 void handle_leave(char *net, char *id)
 {
-    char message[13], response[8];
+    char message[13] = "", response[8] = "";
     for (int i = 0; i < MAX_NODES; i++)
     {
         strcpy(server.names[i], "\0");
-        if (server.vz[i].fd != -1)
+        if (server.vz[i].fd != -2)
         {
             close(server.vz[i].fd);
-            server.vz[i].fd = -1;
+            server.vz[i].fd = -2;
             strcpy(server.vz[i].id, "\0");
             strcpy(server.vz[i].ip, "\0");
             strcpy(server.vz[i].port, "\0");
+            strcpy(server.vb.id, "\0");
+            strcpy(server.vb.ip, "\0");
+            strcpy(server.vb.port, "\0");
         }
     }
 
@@ -138,8 +144,8 @@ int handle_get(char *dest, char *name, char *origem)
         }
         return flag;
     }
-    char buff[255];
-    int path = -1;
+    char buff[255] = "";
+    int path = -2;
     int dest_int = atoi(dest);
 
     if (server.exptable[dest_int] != 0) // temos entrada na tabela de espedição
@@ -160,7 +166,7 @@ int handle_get(char *dest, char *name, char *origem)
         sprintf(buff, "QUERY %s %s %s\n", dest, origem, name);
         for (int i = 0; i < 99; i++)
         {
-            if (server.vz[i].fd != -1 && atoi(server.vz[i].id) != atoi(origem))
+            if (server.vz[i].fd != -2 && atoi(server.vz[i].id) != atoi(origem))
             {
                 write(server.vz[i].fd, buff, strlen(buff));
             }
@@ -177,7 +183,7 @@ void handle_st()
     fprintf(stdout, "Interns:\n");
     for (int i = 1; i < MAX_NODES; i++)
     {
-        if (server.vz[i].fd != -1)
+        if (server.vz[i].fd != -2)
             fprintf(stdout, "%s %s %s\n", server.vz[i].id, server.vz[i].ip, server.vz[i].port);
     }
 }
@@ -210,6 +216,6 @@ void handle_cr()
 {
     for (int i = 0; i < 99; i++)
     {
-        server.exptable[i]=0;
+        server.exptable[i] = 0;
     }
 }

@@ -31,7 +31,7 @@ int main(int argc, char *argv[])
 
     for (i = 0; i < MAX_NODES; i++)
     {
-        server.vz[i].fd = -1;
+        server.vz[i].fd = -2;
         server.exptable[i] = 0;
     }
 
@@ -51,7 +51,7 @@ int main(int argc, char *argv[])
         FD_SET(server.my_node.fd, &rfds_list); // adiciona o server
         for (i = 0; i < MAX_NODES; i++)
         {
-            if (server.vz[i].fd != -1)
+            if (server.vz[i].fd != -2)
                 FD_SET(server.vz[i].fd, &rfds_list);
         }
         rfds = rfds_list;
@@ -76,7 +76,7 @@ int main(int argc, char *argv[])
                 }
                 for (i = 0; i < MAX_NODES; i++)
                 {
-                    if (server.vz[i].fd == -1)
+                    if (server.vz[i].fd == -2)
                     {
                         server.vz[i].fd = client_socket;
                         break;

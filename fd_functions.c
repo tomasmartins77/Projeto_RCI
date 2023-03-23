@@ -4,7 +4,7 @@ extern server_node server;
 
 fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
 {
-    char message[10], arg1[9], arg2[5], bootid[7], bootIP[16], bootTCP[8], buff[255];
+    char message[10] = "", arg1[9] = "", arg2[5] = "", bootid[7] = "", bootIP[16] = "", bootTCP[8] = "", buff[255] = "";
     static int flag_join = 0, flag_create = 0;
     int count = 0;
 
@@ -80,7 +80,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
 
 fd_set client_fd_set(fd_set rfds_list, int x)
 {
-    char buff[1024] = "", str_temp[10], message[50];
+    char buff[1024] = "", str_temp[10] = "", message[50] = "";
     node_t temp;
     memset(buff, 0, 1024);
     int save = server.vz[x].fd;
@@ -88,7 +88,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
 
     for (intr = 1; intr < MAX_NODES; intr++)
     {
-        if (server.vz[intr].fd != -1)
+        if (server.vz[intr].fd != -2)
             break;
     }
 
@@ -100,7 +100,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         close(server.vz[x].fd);
         if (x > 0)
         {
-            server.vz[x].fd = -1;
+            server.vz[x].fd = -2;
         }
         else if (strcmp(server.my_node.id, server.vb.id) != 0) // VE saiu e nao é ancora, tem VI
         {
@@ -115,7 +115,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             // for loop a enviar EXTERN aos intr
             for (i = 1; i < MAX_NODES; i++)
             {
-                if (server.vz[i].fd != -1)
+                if (server.vz[i].fd != -2)
                 {
                     write(server.vz[i].fd, message, strlen(message));
                 }
@@ -128,17 +128,17 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
             for (i = 1; i < MAX_NODES; i++)
             {
-                if (server.vz[i].fd != -1)
+                if (server.vz[i].fd != -2)
                 {
                     write(server.vz[i].fd, message, strlen(message));
                 }
             }
-            server.vz[intr].fd = -1;
+            server.vz[intr].fd = -2;
         }
         else
         {
             server.vz[x] = server.my_node;
-            server.vz[x].fd = -1;
+            server.vz[x].fd = -2;
         }
     }
     else
@@ -226,7 +226,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
 
 void withdraw(int x)
 {
-    char buff[100];
+    char buff[100] = "";
     char x_c[3] = "";
     sprintf(x_c, "%02d", x);
     server.exptable[x] = 0;

@@ -51,4 +51,6 @@ char *random_number(char *);
 
 void timeout(int, int);
 
+void inicialize_nodes(node_t *nodes);
+
 #endif /* HEADER_H */

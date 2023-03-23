@@ -4,7 +4,7 @@ extern server_node server;
 
 void clear(char *net)
 {
-    char message[13], buff[8];
+    char message[13] = "", buff[8] = "";
     for (int i = 0; i < MAX_NODES; i++)
     {
         if (i < 10)
@@ -20,8 +20,8 @@ void clear(char *net)
 
 int node_list(char *net, int print, node_t *nodes)
 {
-    char buff[1024];
-    char node_msg[10];
+    char buff[1024] = "";
+    char node_msg[10] = "";
 
     sprintf(node_msg, "NODES %s", net);
     UDP_server_message(node_msg, buff, sizeof(buff));
@@ -38,10 +38,7 @@ int parse_nodes(char *nodes_str, node_t *nodes)
 
     char *nodes_copy = strdup(nodes_str);
     if (nodes_copy == NULL)
-    {
-        // error: memory allocation failed
-        return -1;
-    }
+        return -1; // error: memory allocation failed
     // split string into lines
     line = strtok_r(nodes_copy, "\n", &nodes_copy);
     line = strtok_r(NULL, "\n", &nodes_copy);
@@ -75,6 +72,7 @@ int parse_nodes(char *nodes_str, node_t *nodes)
         // move to next line
         line = strtok_r(NULL, "\n", &nodes_copy);
     }
+
     return node_count;
 }
 
@@ -106,4 +104,14 @@ void timeout(int time, int socket)
     select(socket + 1, &rfds, NULL, NULL, &timeout);
     if (FD_ISSET(socket, &rfds))
         return;
+}
+
+void inicialize_nodes(node_t *nodes)
+{
+    for (int i = 0; i < MAX_NODES; i++)
+    {
+        strcpy(nodes[i].id, "\0");
+        strcpy(nodes[i].ip, "\0");
+        strcpy(nodes[i].port, "\0");
+    }
 }
