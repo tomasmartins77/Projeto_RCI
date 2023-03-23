@@ -19,8 +19,9 @@ int handle_join(char *net, char *id)
             if (handle_djoin(net, id, nodes[int_connect].id, nodes[int_connect].ip, nodes[int_connect].port) == 0)
                 break;
             strcpy(nodes[int_connect].ip, "0");
-            for (i = 0; i < count; i++)
+            for (i = 0; i <= count; i++)
             {
+                printf("estou   : %d\n", i);
                 if (strcmp(nodes[i].ip, "0") != 0)
                     break;
             }
@@ -28,15 +29,18 @@ int handle_join(char *net, char *id)
                 break;
         }
     }
-    else if (count == 0 || i == count)
+    if (count == 0 || i == count)
+    {
+        printf("entreiii\n");
         handle_djoin(net, id, id, server.my_node.ip, server.my_node.port);
+    }
+        printf("%d nao entrei %d\n", count, i);
 
     return count;
 }
 
 int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
 {
-    printf("%s %s\n", bootid, bootIP);
     char message[50] = "", response[6];
     strcpy(server.my_node.id, id);
     if (strcmp(id, bootid) != 0)
@@ -56,7 +60,6 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
     strcpy(server.vz[0].port, bootTCP);
 
     server.vb = server.my_node;
-        fprintf(stdout, "REG %s %s %s %s", net, id, server.my_node.ip, server.my_node.port);
 
     sprintf(message, "REG %s %s %s %s", net, id, server.my_node.ip, server.my_node.port);
     UDP_server_message(message, response, sizeof(response));

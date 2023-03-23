@@ -11,7 +11,7 @@ void UDP_server_message(char *message, char *response, int len)
 
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP); // mudar para receber do terminal!!!!!!!!!!!!!!!!!!!!!!
+    server_addr.sin_addr.s_addr = inet_addr("192.168.1.1"); // mudar para receber do terminal!!!!!!!!!!!!!!!!!!!!!!
     server_addr.sin_port = htons(SERVER_PORT);
 
     if (sendto(sockfd, message, strlen(message), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
@@ -50,7 +50,7 @@ int tcp_client(char *ip_address, int portno)
     if (inet_pton(AF_INET, ip_address, &serv_addr.sin_addr) <= 0)
     {
         fprintf(stdout, "\nInvalid address/ Address not supported \n");
-        exit(-1);
+        return -1;
     }
 
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)

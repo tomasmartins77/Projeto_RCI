@@ -10,7 +10,6 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
 
     fgets(buff, 255, stdin); // LE o que ta escrito
     sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
-    fprintf(stdout, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
     if (strcmp(message, "join") == 0 && flag_join == 0)
     {
         strcpy(server.net, arg1);
