@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
     if (argc == 5)
     {
         strcpy(connect_ip, argv[3]);
-        strcoy(connect_port, argv[4]);
+        strcpy(connect_port, argv[4]);
     }
 
     while (1)
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
         {
             if (FD_ISSET(keyfd, &rfds))
             {
-                rfds = handle_menu(rfds, argv[1], argv[2]);
+                rfds = handle_menu(rfds, argv[1], argv[2], argv[3], argv[4]);
             }
             if (FD_ISSET(server.my_node.fd, &rfds))
             {

@@ -20,7 +20,7 @@
 
 void withdraw(int);
 
-fd_set handle_menu(fd_set, char *, char *);
+fd_set handle_menu(fd_set, char *, char *, char *, char *);
 
 fd_set client_fd_set(fd_set, int);
 
