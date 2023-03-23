@@ -2,7 +2,7 @@
 
 extern server_node server;
 
-void UDP_server_message(char *message, char *response, int len)
+void UDP_server_message(char *message, char *response, int len, char *connect_ip, int connect_port)
 {
     int sockfd;
     struct sockaddr_in server_addr;
@@ -11,15 +11,15 @@ void UDP_server_message(char *message, char *response, int len)
 
     memset(&server_addr, 0, sizeof(server_addr));
     server_addr.sin_family = AF_INET;
-    server_addr.sin_addr.s_addr = inet_addr(SERVER_IP); // mudar para receber do terminal!!!!!!!!!!!!!!!!!!!!!!
-    server_addr.sin_port = htons(SERVER_PORT);
+    server_addr.sin_addr.s_addr = inet_addr(connect_ip); // mudar para receber do terminal!!!!!!!!!!!!!!!!!!!!!!
+    server_addr.sin_port = htons(connect_port);
 
     if (sendto(sockfd, message, strlen(message), 0, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0)
     {
         perror("sendto error\n");
         exit(1);
     }
-    timeout(1, sockfd);
+    timeout(2, sockfd);
     int n = recvfrom(sockfd, response, len, 0, NULL, NULL);
     if (n < 0)
     {

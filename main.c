@@ -17,9 +17,6 @@
 #include "fd_functions.h"
 
 #define max(A, B) ((A) >= (B) ? (A) : (B))
-#define MAX_NODES 99
-#define SERVER_IP "193.136.138.142" // Change to the IP address of your server
-#define SERVER_PORT 59000           // Change to the port number of your server
 
 server_node server;
 
@@ -51,6 +48,11 @@ int main(int argc, char *argv[])
         strcpy(connect_ip, argv[3]);
         strcpy(connect_port, argv[4]);
     }
+    else if (argc == 3)
+    {
+        strcpy(connect_ip, SERVER_IP);
+        strcpy(connect_port, SERVER_PORT);
+    }
 
     while (1)
     {
@@ -73,7 +75,7 @@ int main(int argc, char *argv[])
         {
             if (FD_ISSET(keyfd, &rfds))
             {
-                rfds = handle_menu(rfds, argv[1], argv[2], argv[3], argv[4]);
+                rfds = handle_menu(rfds, argv[1], argv[2], connect_ip, connect_port);
             }
             if (FD_ISSET(server.my_node.fd, &rfds))
             {
@@ -86,6 +88,7 @@ int main(int argc, char *argv[])
                 {
                     if (server.vz[i].active == 0)
                     {
+                        printf("New connection, socket fd is %d in %d\n", client_socket, i);
                         server.vz[i].fd = client_socket;
                         server.vz[i].active = 1;
                         break;
@@ -96,6 +99,7 @@ int main(int argc, char *argv[])
             {
                 if (server.vz[x].active == 1)
                 {
+                    printf("activated %d in %d", server.vz[x].fd, x);
                     if (FD_ISSET(server.vz[x].fd, &rfds))
                         rfds = client_fd_set(rfds, x);
                 }

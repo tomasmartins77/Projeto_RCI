@@ -17,7 +17,7 @@
 #include "handle.h"
 #include "connections.h"
 
-void UDP_server_message(char *message, char *response, int len);
+void UDP_server_message(char *message, char *response, int len, char *, int);
 
 int tcp_client(char *ip_address, int portno);
 

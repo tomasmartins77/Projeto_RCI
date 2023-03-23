@@ -2,7 +2,7 @@
 
 extern server_node server;
 
-fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
+fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, char *connect_port)
 {
     char message[10] = "", arg1[9] = "", arg2[5] = "", bootid[7] = "", bootIP[16] = "", bootTCP[8] = "", buff[255] = "";
     static int flag_join = 0, flag_create = 0;
@@ -13,7 +13,8 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
     if (strcmp(message, "join") == 0 && flag_join == 0)
     {
         strcpy(server.net, arg1);
-        count = handle_join(arg1, arg2);
+
+        count = handle_join(arg1, arg2, connect_ip, connect_port);
 
         if (count > 0)
             FD_SET(server.vz[0].fd, &rfds_list);
@@ -24,7 +25,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
     else if (strcmp(message, "djoin") == 0 && flag_join == 0)
     {
         strcpy(server.net, arg1);
-        handle_djoin(arg1, arg2, bootid, bootIP, bootTCP);
+        handle_djoin(arg1, arg2, bootid, bootIP, bootTCP, connect_ip, connect_port);
 
         if (strcmp(arg2, bootid) != 0)
             FD_SET(server.vz[0].fd, &rfds_list);
@@ -35,7 +36,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
     else if (strcmp(message, "leave") == 0 && flag_join == 1)
     {
         flag_join = 0;
-        handle_leave(server.net, server.my_node.id);
+        handle_leave(server.net, server.my_node.id, connect_ip, connect_port);
     }
     else if (strcmp(message, "leave") == 0 && flag_join == 0)
         fprintf(stdout, "no node created\n");
@@ -70,9 +71,13 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
         exit(1);
     }
     else if (strcmp(message, "clear") == 0)
-        clear(arg1);
-    else if (strcmp(message, "clear route") == 0 || strcmp(message, "cr") == 0)
+        clear(arg1, connect_ip, connect_port);
+    else if ((strcmp(message, "clear route") == 0 || strcmp(message, "cr") == 0) && flag_join == 1)
         handle_cr();
+    else if ((strcmp(message, "clear route") == 0 || strcmp(message, "cr") == 0) && flag_join == 0)
+        fprintf(stdout, "no node created\n");
+    else if (strcmp(message, "show") == 0)
+        show(arg1, connect_ip, connect_port);
     else
         fprintf(stdout, "invalid command\n");
     return rfds_list;
@@ -81,7 +86,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port)
 fd_set client_fd_set(fd_set rfds_list, int x)
 {
     char buff[1024] = "", str_temp[10] = "", message[50] = "", origin[3] = "", dest[3] = "", content[100] = "";
-    node_t temp;
+    node_t temp = {};
     memset(buff, 0, 1024);
     int save = server.vz[x].fd;
     int intr = 0, i;
@@ -143,10 +148,13 @@ fd_set client_fd_set(fd_set rfds_list, int x)
     }
     else
     {
+        fprintf(stdout, "recieved: %s\n", buff);
         sscanf(buff, "%s", str_temp);
+
         if (strcmp(str_temp, "NEW") == 0)
         {
             sscanf(buff, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
+            printf("novo: %s %s %s\n", temp.id, temp.ip, temp.port);
             server.vz[x] = temp;
             server.vz[x].fd = save;
             sprintf(buff, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
@@ -221,7 +229,6 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             withdraw(atoi(dest));
         }
     }
-
     return rfds_list;
 }
 

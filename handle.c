@@ -2,12 +2,12 @@
 
 extern server_node server;
 
-int handle_join(char *net, char *id)
+int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
 {
     node_t nodes[MAX_NODES];
     inicialize_nodes(nodes);
-    int count = node_list(net, 0, nodes);
-    int int_connect, i = 0;
+    int count = node_list(net, nodes, connect_ip, connect_port);
+    int int_connect = 0, i = 0;
     char id_temp[3] = "";
 
     if (count > 0)
@@ -21,7 +21,7 @@ int handle_join(char *net, char *id)
                 strcpy(id, id_temp);
             }
 
-            if (handle_djoin(net, id, nodes[int_connect].id, nodes[int_connect].ip, nodes[int_connect].port) == 0)
+            if (handle_djoin(net, id, nodes[int_connect].id, nodes[int_connect].ip, nodes[int_connect].port, connect_ip, connect_port) == 0)
                 break;
 
             strcpy(nodes[int_connect].ip, "0");
@@ -36,13 +36,13 @@ int handle_join(char *net, char *id)
     }
     if (count == 0 || i == count)
     {
-        handle_djoin(net, id, id, server.my_node.ip, server.my_node.port);
+        handle_djoin(net, id, id, server.my_node.ip, server.my_node.port, connect_ip, connect_port);
     }
 
     return count;
 }
 
-int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
+int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP, char *connect_ip, char *connect_port)
 {
     char message[50] = "", response[6] = "";
     strcpy(server.my_node.id, id);
@@ -54,9 +54,12 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
             return -1;
 
         server.vz[0].active = 1;
+        printf("connected to fd %i\n", server.vz[0].fd);
         sprintf(message, "NEW %s %s %s\n", id, server.my_node.ip, server.my_node.port);
         write(server.vz[0].fd, message, strlen(message));
     }
+    else
+        server.vz[0].active = 0;
 
     strcpy(server.vz[0].id, bootid);
     strcpy(server.vz[0].ip, bootIP);
@@ -65,13 +68,13 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP)
     server.vb = server.my_node;
 
     sprintf(message, "REG %s %s %s %s", net, id, server.my_node.ip, server.my_node.port);
-    UDP_server_message(message, response, sizeof(response));
+    UDP_server_message(message, response, sizeof(response), connect_ip, atoi(connect_port));
     if (strcmp(response, "OKREG") == 0)
         fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[0].id);
     return 0;
 }
 
-void handle_leave(char *net, char *id)
+void handle_leave(char *net, char *id, char *connect_ip, char *connect_port)
 {
     char message[13] = "", response[8] = "";
     for (int i = 0; i < MAX_NODES; i++)
@@ -91,7 +94,7 @@ void handle_leave(char *net, char *id)
     }
 
     sprintf(message, "UNREG %s %s", net, id);
-    UDP_server_message(message, response, sizeof(response));
+    UDP_server_message(message, response, sizeof(response), connect_ip, atoi(connect_port));
     if (strcmp(response, "OKUNREG") == 0)
         fprintf(stdout, "%s left the network %s\n", server.my_node.id, server.net);
 }
@@ -114,8 +117,8 @@ int handle_create(char *name)
 
 void handle_delete(char *name)
 {
-    int i, flag = 0;
-    for (i = 0; i < MAX_NODES; i++)
+    int flag = 0;
+    for (int i = 0; i < MAX_NODES; i++)
     {
         if (strcmp(server.names[i], name) == 0)
         {
@@ -190,9 +193,8 @@ void handle_st()
 
 void handle_sn()
 {
-    int i;
     fprintf(stdout, "files:\n");
-    for (i = 0; i < 50; i++)
+    for (int i = 0; i < 50; i++)
     {
         if (strcmp(server.names[i], "\0") != 0)
         {

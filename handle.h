@@ -18,11 +18,11 @@
 #include "connections.h"
 #include "fd_functions.h"
 
-void handle_leave(char *, char *);
+void handle_leave(char *, char *, char *, char *);
 
-int handle_join(char *, char *);
+int handle_join(char *, char *, char *, char *);
 
-int handle_djoin(char *, char *, char *, char *, char *);
+int handle_djoin(char *, char *, char *, char *, char *, char *, char *);
 
 int handle_create(char *);
 

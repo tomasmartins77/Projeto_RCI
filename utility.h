@@ -20,7 +20,7 @@
 
 #define MAX_NODES 99
 #define SERVER_IP "193.136.138.142" // Change to the IP address of your server
-#define SERVER_PORT 59000           // Change to the port number of your server
+#define SERVER_PORT "59000"         // Change to the port number of your server
 
 typedef struct node
 {
@@ -40,9 +40,11 @@ typedef struct server_node
     int exptable[MAX_NODES];
 } server_node;
 
-void clear(char *net);
+void clear(char *, char *, char *);
 
-int node_list(char *, int, node_t *);
+void show(char *, char *, char *);
+
+int node_list(char *, node_t *, char *, char *);
 
 int parse_nodes(char *, node_t *);
 
@@ -52,6 +54,6 @@ char *random_number(char *);
 
 void timeout(int, int);
 
-void inicialize_nodes(node_t *nodes);
+void inicialize_nodes(node_t *);
 
 #endif /* HEADER_H */

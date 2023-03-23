@@ -2,7 +2,7 @@
 
 extern server_node server;
 
-void clear(char *net)
+void clear(char *net, char *connect_ip, char *connect_port)
 {
     char message[13] = "", buff[8] = "";
     for (int i = 0; i < MAX_NODES; i++)
@@ -11,20 +11,29 @@ void clear(char *net)
             sprintf(message, "UNREG %s 0%d", net, i);
         else
             sprintf(message, "UNREG %s %d", net, i);
-        UDP_server_message(message, buff, sizeof(buff));
+        UDP_server_message(message, buff, sizeof(buff), connect_ip, atoi(connect_port));
         if (strcmp(buff, "OKUNREG") != 0)
             exit(1);
     }
     printf("acabei\n");
 }
 
-int node_list(char *net, int print, node_t *nodes)
+void show(char *net, char *connect_ip, char *connect_port)
+{
+    char message[13] = "", buff[1024] = "";
+
+    sprintf(message, "NODES %s", net);
+    UDP_server_message(message, buff, sizeof(buff), connect_ip, atoi(connect_port));
+    printf("%s", buff);
+}
+
+int node_list(char *net, node_t *nodes, char *connect_ip, char *connect_port)
 {
     char buff[1024] = "";
     char node_msg[10] = "";
 
     sprintf(node_msg, "NODES %s", net);
-    UDP_server_message(node_msg, buff, sizeof(buff));
+    UDP_server_message(node_msg, buff, sizeof(buff), connect_ip, atoi(connect_port));
 
     return parse_nodes(buff, nodes);
 }
@@ -39,6 +48,8 @@ int parse_nodes(char *nodes_str, node_t *nodes)
     char *nodes_copy = strdup(nodes_str);
     if (nodes_copy == NULL)
         return -1; // error: memory allocation failed
+
+    char *delete = nodes_copy;
     // split string into lines
     line = strtok_r(nodes_copy, "\n", &nodes_copy);
     line = strtok_r(NULL, "\n", &nodes_copy);
@@ -72,7 +83,7 @@ int parse_nodes(char *nodes_str, node_t *nodes)
         // move to next line
         line = strtok_r(NULL, "\n", &nodes_copy);
     }
-
+    free(delete);
     return node_count;
 }
 
