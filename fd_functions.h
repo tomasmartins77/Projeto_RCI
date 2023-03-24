@@ -18,7 +18,7 @@
 #include "connections.h"
 #include "fd_functions.h"
 
-void withdraw(int);
+void withdraw(int, int);
 
 fd_set handle_menu(fd_set, char *, char *, char *, char *);
 

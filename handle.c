@@ -149,7 +149,7 @@ int handle_get(char *dest, char *name, char *origem)
     int path = 0;
     int dest_int = atoi(dest);
 
-    if (server.exptable[dest_int] != 0) // temos entrada na tabela de espedição
+    if (server.exptable[dest_int] != -1) // temos entrada na tabela de espedição
     {
         sprintf(buff, "QUERY %s %s %s \n", dest, origem, name);
         path = server.exptable[dest_int];
