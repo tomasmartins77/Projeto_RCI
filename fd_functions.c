@@ -12,7 +12,6 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
     sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
     if (strcmp(message, "join") == 0 && flag_join == 0)
     {
-        printf("arg1: %s, arg2: %s\n", arg1, arg2);
         if (check_input_format(buff, message) == 0)
         {
             fprintf(stdout, "Invalid arguments\n");
@@ -127,13 +126,9 @@ fd_set client_fd_set(fd_set rfds_list, int x)
 
         close(server.vz[x].fd);
         if (x > 0)
-        {
-            printf("interno saiu\n");
             server.vz[x].active = 0;
-        }
         else if (strcmp(server.my_node.id, server.vb.id) != 0) // VE saiu e nao é ancora, tem VI
         {
-            printf("externo saiu e nao e ancora\n");
             server.vz[x] = server.vb;
             server.vz[x].active = 1;
             server.vz[x].fd = tcp_client(server.vb.ip, atoi(server.vb.port));
@@ -154,7 +149,6 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         }
         else if (intr != MAX_NODES)
         {
-            printf("externo saiu e e ancora\n");
             server.vz[x] = server.vz[intr];
             server.vz[x].active = 1;
             sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
@@ -169,7 +163,6 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         }
         else
         {
-            printf("externo saiu e e unico\n");
             server.vz[x] = server.my_node;
             server.vz[x].active = 0;
         }
