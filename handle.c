@@ -91,7 +91,7 @@ void handle_leave(char *net, char *id, char *connect_ip, char *connect_port)
             strcpy(server.vb.port, "\0");
         }
     }
-
+    handle_cr();
     sprintf(message, "UNREG %s %s", net, id);
     UDP_server_message(message, response, sizeof(response), connect_ip, atoi(connect_port));
     if (strcmp(response, "OKUNREG") == 0)
@@ -129,13 +129,12 @@ void handle_delete(char *name)
     }
     if (flag == 0)
     {
-        fprintf(stdout, "no file deleted\n");
+        fprintf(stdout, "no file to be deleted, %s doesnt exist\n", name);
     }
 }
 
 int handle_get(char *dest, char *name, char *origem)
 {
-
     int flag = 2;
     if (strcmp(dest, server.my_node.id) == 0)
     {

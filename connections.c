@@ -48,10 +48,16 @@ int tcp_client(char *ip_address, int portno)
 
     // Convert IPv4 and IPv6 addresses from text to binary form
     if (inet_pton(AF_INET, ip_address, &serv_addr.sin_addr) <= 0)
+    {
+        close(sockfd);
         return -1;
+    }
 
     if (connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
+    {
+        close(sockfd);
         return -1;
+    }
 
     return sockfd;
 }

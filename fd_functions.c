@@ -5,13 +5,19 @@ extern server_node server;
 fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, char *connect_port)
 {
     char message[10] = "", arg1[9] = "", arg2[5] = "", bootid[7] = "", bootIP[16] = "", bootTCP[8] = "", buff[255] = "";
-    static int flag_join = 0, flag_create = 0;
+    static int flag_join = 0, flag_create = 0, flag_leave = 0;
     int count = 0;
 
     fgets(buff, 255, stdin); // LE o que ta escrito
     sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
     if (strcmp(message, "join") == 0 && flag_join == 0)
     {
+        printf("arg1: %s, arg2: %s\n", arg1, arg2);
+        if (check_input_format(buff, message) == 0)
+        {
+            fprintf(stdout, "Invalid arguments\n");
+            return rfds_list;
+        }
         strcpy(server.net, arg1);
 
         count = handle_join(arg1, arg2, connect_ip, connect_port);
@@ -19,12 +25,19 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
         if (count > 0)
             FD_SET(server.vz[0].fd, &rfds_list);
         flag_join = 1;
+        flag_leave = 0;
     }
     else if (strcmp(message, "join") == 0 && flag_join == 1)
         fprintf(stdout, "node already created\n");
     else if (strcmp(message, "djoin") == 0 && flag_join == 0)
     {
+        if (check_input_format(buff, message) == 0)
+        {
+            fprintf(stdout, "Invalid arguments\n");
+            return rfds_list;
+        }
         strcpy(server.net, arg1);
+
         handle_djoin(arg1, arg2, bootid, bootIP, bootTCP, connect_ip, connect_port);
 
         if (strcmp(arg2, bootid) != 0)
@@ -36,6 +49,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
     else if (strcmp(message, "leave") == 0 && flag_join == 1)
     {
         flag_join = 0;
+        flag_leave = 1;
         handle_leave(server.net, server.my_node.id, connect_ip, connect_port);
     }
     else if (strcmp(message, "leave") == 0 && flag_join == 0)
@@ -47,7 +61,14 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
     else if (strcmp(message, "delete") == 0 && flag_create > 0)
         handle_delete(arg1);
     else if (strcmp(message, "get") == 0 && strcmp(arg1, server.my_node.id) != 0 && flag_join == 1)
+    {
+        if (check_input_format(buff, message) == 0)
+        {
+            fprintf(stdout, "Invalid arguments\n");
+            return rfds_list;
+        }
         handle_get(arg1, arg2, server.my_node.id);
+    }
     else if (strcmp(message, "get") == 0 && strcmp(arg1, server.my_node.id) == 0 && flag_join == 1)
         fprintf(stdout, "cannot get file from yourself\n");
     else if (strcmp(message, "get") == 0 && flag_join == 0)
@@ -66,6 +87,8 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
         fprintf(stdout, "no node created\n");
     else if (strcmp(message, "exit") == 0)
     {
+        if (flag_leave == 0)
+            handle_leave(server.net, server.my_node.id, connect_ip, connect_port);
         close(server.my_node.fd);
         fprintf(stdout, "exiting program\n");
         exit(1);
@@ -192,13 +215,13 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         if (strcmp(str_temp, "NOCONTENT") == 0)
         {
             sscanf(buff, "%s %s %s %s\n", str_temp, origin, dest, content);
-            server.exptable[atoi(temp.ip)] = atoi(server.vz[x].id);
-            if (strcmp(temp.id, server.my_node.id) != 0)
+            server.exptable[atoi(dest)] = atoi(server.vz[x].id);
+            if (strcmp(origin, server.my_node.id) != 0)
             {
-                int temp_ip = server.exptable[atoi(temp.id)];
+                int temp_id = server.exptable[atoi(origin)];
                 for (int i = 0; i < MAX_NODES; i++)
                 {
-                    if (atoi(server.vz[i].id) == temp_ip)
+                    if (atoi(server.vz[i].id) == temp_id)
                     {
                         sprintf(buff, "NOCONTENT %s %s %s\n", origin, dest, content);
                         write(server.vz[i].fd, buff, strlen(buff));
@@ -212,12 +235,12 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         {
             sscanf(buff, "%s %s %s %s\n", str_temp, origin, dest, content);
             server.exptable[atoi(temp.ip)] = atoi(server.vz[x].id);
-            if (strcmp(temp.id, server.my_node.id) != 0)
+            if (strcmp(origin, server.my_node.id) != 0)
             {
-                int temp_ip = server.exptable[atoi(temp.id)];
+                int temp_id = server.exptable[atoi(origin)];
                 for (int i = 0; i < MAX_NODES; i++)
                 {
-                    if (atoi(server.vz[i].id) == temp_ip)
+                    if (atoi(server.vz[i].id) == temp_id)
                     {
                         sprintf(buff, "CONTENT %s %s %s\n", origin, dest, content);
                         write(server.vz[i].fd, buff, strlen(buff));
@@ -229,8 +252,8 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         }
         if (strcmp(str_temp, "WITHDRAW") == 0)
         {
-            printf("withdraw %s\n", dest);
             sscanf(buff, "%s %s\n", str_temp, dest);
+            printf("withdraw %s\n", dest);
             withdraw(atoi(dest));
         }
     }
@@ -245,12 +268,15 @@ void withdraw(int x)
     server.exptable[x] = 0;
     for (int i = 0; i < MAX_NODES; i++)
     {
-        if (server.exptable[i] == x)
-            server.exptable[i] = 0;
-        if (i != x)
+        if (server.vz[i].active == 1)
         {
-            sprintf(buff, "WITHDRAW %s\n", x_c);
-            write(server.vz[i].fd, buff, strlen(buff));
+            if (server.exptable[i] == x)
+                server.exptable[i] = 0;
+            if (i != x)
+            {
+                sprintf(buff, "WITHDRAW %s\n", x_c);
+                write(server.vz[i].fd, buff, strlen(buff));
+            }
         }
     }
 }

@@ -14,6 +14,7 @@
 #include <netdb.h>
 #include <sys/time.h>
 #include <time.h>
+#include <ctype.h>
 #include "utility.h"
 #include "connections.h"
 #include "fd_functions.h"
@@ -55,5 +56,7 @@ char *random_number(char *);
 void timeout(int, int);
 
 void inicialize_nodes(node_t *);
+
+int check_input_format(char *, char *);
 
 #endif /* HEADER_H */

@@ -126,3 +126,136 @@ void inicialize_nodes(node_t *nodes)
         strcpy(nodes[i].port, "\0");
     }
 }
+
+int check_input_format(char *input, char *message)
+{
+    char num1[4], num2[3], num3[3], ip[16];
+    int num_dots = 0;
+    if (strcmp(message, "get") != 0)
+    {
+        // Extract the first number
+        if (sscanf(input + strlen(message) + 1, "%3s", num1) != 1)
+        {
+            return 0;
+        }
+
+        // Check if the first number has exactly 3 digits
+        if (strlen(num1) != 3)
+        {
+            return 0;
+        }
+
+        // Check if the first number is all digits
+        for (int i = 0; i < strlen(num1); i++)
+        {
+            if (!isdigit(num1[i]))
+            {
+                return 0;
+            }
+        }
+
+        // Extract the second number
+        if (sscanf(input + strlen(message) + 1 + strlen(num1) + 1, "%2s", num2) != 1)
+        {
+            return 0;
+        }
+
+        // Check if the second number has exactly 2 digits
+        if (strlen(num2) != 2)
+        {
+            return 0;
+        }
+
+        // Check if the second number is all digits
+        for (int i = 0; i < strlen(num2); i++)
+        {
+            if (!isdigit(num2[i]))
+            {
+                return 0;
+            }
+        }
+
+        if (strcmp(message, "djoin") == 0)
+        {
+            // Extract the third number
+            if (sscanf(input + strlen(message) + 1 + strlen(num1) + 1 + strlen(num2) + 1, "%2s", num3) != 1)
+            {
+                return 0;
+            }
+
+            // Check if the third number has exactly 2 digits
+            if (strlen(num3) != 2)
+            {
+                return 0;
+            }
+
+            // Check if the third number is all digits
+            for (int i = 0; i < strlen(num3); i++)
+            {
+                if (!isdigit(num3[i]))
+                {
+                    return 0;
+                }
+            }
+
+            // Extract the IP address
+            if (sscanf(input + strlen(message) + 1 + strlen(num1) + 1 + strlen(num2) + 1 + strlen(num3) + 1, "%15s", ip) != 1)
+            {
+                return 0;
+            }
+
+            // Check if the IP address contains only digits, dots, and has at most 3 digits between each dot
+            char *tok;
+            tok = strtok(ip, ".");
+            while (tok != NULL)
+            {
+                num_dots++;
+                // Check if the token is all digits
+                for (int i = 0; i < strlen(tok); i++)
+                {
+                    if (!isdigit(tok[i]))
+                    {
+                        return 0;
+                    }
+                }
+                // Check if the token is between 0 and 255
+                int num = atoi(tok);
+                if (num < 0 || num > 255)
+                {
+                    return 0;
+                }
+                tok = strtok(NULL, ".");
+            }
+            num_dots--;
+            if (num_dots != 3)
+            {
+                return 0;
+            }
+        }
+    }
+    else
+    {
+        // Extract the number
+        if (sscanf(input + 4, "%2s", num2) != 1)
+        {
+            return 0;
+        }
+
+        // Check if the number has exactly 2 digits
+        if (strlen(num2) != 2)
+        {
+            return 0;
+        }
+
+        // Check if the number is all digits
+        for (int i = 0; i < strlen(num2); i++)
+        {
+            if (!isdigit(num2[i]))
+            {
+                return 0;
+            }
+        }
+    }
+
+    return 1;
+}
