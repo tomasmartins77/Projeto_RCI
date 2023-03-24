@@ -30,7 +30,7 @@ int main(int argc, char *argv[])
     for (i = 0; i < MAX_NODES; i++)
     {
         server.vz[i].active = 0;
-        server.exptable[i] = 0;
+        server.exptable[i] = -1;
     }
 
     struct sockaddr_in client_addr;

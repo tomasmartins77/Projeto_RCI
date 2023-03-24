@@ -205,7 +205,7 @@ void handle_sr()
 {
     for (int i = 0; i < MAX_NODES; i++)
     {
-        if (server.exptable[i] != 0)
+        if (server.exptable[i] != -1)
         {
             printf("%d-->%d\n", i, server.exptable[i]);
         }
@@ -216,6 +216,6 @@ void handle_cr()
 {
     for (int i = 0; i < MAX_NODES; i++)
     {
-        server.exptable[i] = 0;
+        server.exptable[i] = -1;
     }
 }
