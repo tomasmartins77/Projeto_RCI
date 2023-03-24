@@ -5,7 +5,7 @@ extern server_node server;
 fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, char *connect_port)
 {
     char message[10] = "", arg1[9] = "", arg2[5] = "", bootid[7] = "", bootIP[16] = "", bootTCP[8] = "", buff[255] = "";
-    static int flag_join = 0, flag_create = 0, flag_leave = 0;
+    static int flag_join = 0, flag_create = 0;
     int count = 0;
 
     fgets(buff, 255, stdin); // LE o que ta escrito
@@ -24,7 +24,6 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
         if (count > 0)
             FD_SET(server.vz[0].fd, &rfds_list);
         flag_join = 1;
-        flag_leave = 0;
     }
     else if (strcmp(message, "join") == 0 && flag_join == 1)
         fprintf(stdout, "node already created\n");
@@ -48,7 +47,6 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
     else if (strcmp(message, "leave") == 0 && flag_join == 1)
     {
         flag_join = 0;
-        flag_leave = 1;
         handle_leave(server.net, server.my_node.id, connect_ip, connect_port);
     }
     else if (strcmp(message, "leave") == 0 && flag_join == 0)
@@ -86,7 +84,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
         fprintf(stdout, "no node created\n");
     else if (strcmp(message, "exit") == 0)
     {
-        if (flag_leave == 0)
+        if (flag_join == 1)
             handle_leave(server.net, server.my_node.id, connect_ip, connect_port);
         close(server.my_node.fd);
         fprintf(stdout, "exiting program\n");
@@ -227,7 +225,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         if (strcmp(str_temp, "CONTENT") == 0)
         {
             sscanf(buff, "%s %s %s %s\n", str_temp, origin, dest, content);
-            server.exptable[atoi(temp.ip)] = atoi(server.vz[x].id);
+            server.exptable[atoi(dest)] = atoi(server.vz[x].id);
             if (strcmp(origin, server.my_node.id) != 0)
             {
                 int temp_id = server.exptable[atoi(origin)];
