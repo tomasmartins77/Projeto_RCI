@@ -54,12 +54,9 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP,
             return -1;
 
         server.vz[0].active = 1;
-        printf("connected to fd %i\n", server.vz[0].fd);
         sprintf(message, "NEW %s %s %s\n", id, server.my_node.ip, server.my_node.port);
         write(server.vz[0].fd, message, strlen(message));
     }
-    else
-        server.vz[0].active = 0;
 
     strcpy(server.vz[0].id, bootid);
     strcpy(server.vz[0].ip, bootIP);

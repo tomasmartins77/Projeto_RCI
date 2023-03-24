@@ -100,16 +100,19 @@ fd_set client_fd_set(fd_set rfds_list, int x)
     if (read(server.vz[x].fd, buff, 1024) == 0)
     {
         fprintf(stdout, "%s has left network %s\n", server.vz[x].id, server.net);
-        withdraw(atoi(server.vz[x].id));
+        // withdraw(atoi(server.vz[x].id));
 
         close(server.vz[x].fd);
         if (x > 0)
         {
+            printf("interno saiu\n");
             server.vz[x].active = 0;
         }
         else if (strcmp(server.my_node.id, server.vb.id) != 0) // VE saiu e nao é ancora, tem VI
         {
+            printf("externo saiu e nao e ancora\n");
             server.vz[x] = server.vb;
+            server.vz[x].active = 1;
             server.vz[x].fd = tcp_client(server.vb.ip, atoi(server.vb.port));
             fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[x].id);
 
@@ -128,8 +131,9 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         }
         else if (intr != MAX_NODES)
         {
+            printf("externo saiu e e ancora\n");
             server.vz[x] = server.vz[intr];
-
+            server.vz[x].active = 1;
             sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
             for (i = 1; i < MAX_NODES; i++)
             {
@@ -138,25 +142,25 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                     write(server.vz[i].fd, message, strlen(message));
                 }
             }
-            server.vz[intr].fd = 0;
+            server.vz[intr].active = 0;
         }
         else
         {
+            printf("externo saiu e e unico\n");
             server.vz[x] = server.my_node;
             server.vz[x].active = 0;
         }
     }
     else
     {
-        fprintf(stdout, "recieved: %s\n", buff);
         sscanf(buff, "%s", str_temp);
 
         if (strcmp(str_temp, "NEW") == 0)
         {
             sscanf(buff, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
-            printf("novo: %s %s %s\n", temp.id, temp.ip, temp.port);
             server.vz[x] = temp;
             server.vz[x].fd = save;
+            server.vz[x].active = 1;
             sprintf(buff, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
             write(server.vz[x].fd, buff, strlen(buff));
             server.exptable[atoi(temp.id)] = atoi(temp.id);
@@ -225,6 +229,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         }
         if (strcmp(str_temp, "WITHDRAW") == 0)
         {
+            printf("withdraw %s\n", dest);
             sscanf(buff, "%s %s\n", str_temp, dest);
             withdraw(atoi(dest));
         }

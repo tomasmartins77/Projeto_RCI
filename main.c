@@ -88,7 +88,6 @@ int main(int argc, char *argv[])
                 {
                     if (server.vz[i].active == 0)
                     {
-                        printf("New connection, socket fd is %d in %d\n", client_socket, i);
                         server.vz[i].fd = client_socket;
                         server.vz[i].active = 1;
                         break;
@@ -99,7 +98,6 @@ int main(int argc, char *argv[])
             {
                 if (server.vz[x].active == 1)
                 {
-                    printf("activated %d in %d", server.vz[x].fd, x);
                     if (FD_ISSET(server.vz[x].fd, &rfds))
                         rfds = client_fd_set(rfds, x);
                 }
