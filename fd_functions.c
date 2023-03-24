@@ -120,7 +120,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
     if (read(server.vz[x].fd, buff, 1024) == 0)
     {
         fprintf(stdout, "%s has left network %s\n", server.vz[x].id, server.net);
-        // withdraw(atoi(server.vz[x].id));
+        withdraw(atoi(server.vz[x].id));
 
         close(server.vz[x].fd);
         if (x > 0)
@@ -251,23 +251,20 @@ fd_set client_fd_set(fd_set rfds_list, int x)
     return rfds_list;
 }
 
-void withdraw(int x)
+void withdraw(int node_le)
 {
     char buff[100] = "";
-    char x_c[3] = "";
-    sprintf(x_c, "%02d", x);
-    server.exptable[x] = 0;
+    char char_node_le[3] = "";
+    sprintf(char_node_le, "%02d", node_le);
+    server.exptable[node_le] = -1;
+
     for (int i = 0; i < MAX_NODES; i++)
     {
-        if (server.vz[i].active == 1)
+        if(server.exptable[i]==node_le)
         {
-            if (server.exptable[i] == x)
-                server.exptable[i] = 0;
-            if (i != x)
-            {
-                sprintf(buff, "WITHDRAW %s\n", x_c);
-                write(server.vz[i].fd, buff, strlen(buff));
-            }
+            server.exptable[i]=-1;  
+            sprintf(buff, "WITHDRAW %s\n", char_node_le);
+            write(server.vz[i].fd, buff, strlen(buff));
         }
     }
 }
