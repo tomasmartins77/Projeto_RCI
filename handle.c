@@ -49,6 +49,8 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP,
 
     if (strcmp(id, bootid) != 0)
     {
+        if (strcmp(bootIP, server.my_node.ip) == 0 && strcmp(bootTCP, server.my_node.port) == 0)
+            return -1;
         server.vz[0].fd = tcp_client(bootIP, atoi(bootTCP));
         if (server.vz[0].fd < 0)
             return -1;
