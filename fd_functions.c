@@ -110,9 +110,8 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
 
 fd_set client_fd_set(fd_set rfds_list, int x)
 {
-    char buff[1024] = "", str_temp[10] = "", message[50] = "", origin[3] = "", dest[3] = "", content[100] = "";
+    char str_temp[10] = "", message[50] = "", origin[3] = "", dest[3] = "", content[100] = "";
     node_t temp = {};
-    memset(buff, 0, 1024);
     int save = server.vz[x].fd;
     int intr = 0, i;
     int num_bytes = 0;
@@ -132,98 +131,52 @@ fd_set client_fd_set(fd_set rfds_list, int x)
     }
     if (num_bytes == 0)
     {
-        fprintf(stdout, "%s has left network %s\n", server.vz[x].id, server.net);
-        withdraw(atoi(server.vz[x].id), x);
-
-        close(server.vz[x].fd);
-
-        if (x > 0)
-            server.vz[x].active = 0;
-        else if (strcmp(server.my_node.id, server.vb.id) != 0) // VE saiu e nao é ancora, tem VI
-        {
-            server.vz[x] = server.vb;
-            server.vz[x].active = 1;
-            server.vz[x].fd = tcp_client(server.vb.ip, atoi(server.vb.port));
-            fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[x].id);
-
-            sprintf(message, "NEW %s %s %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
-            write(server.vz[x].fd, message, strlen(message));
-
-            sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
-            // for loop a enviar EXTERN aos intr
-            for (i = 1; i < MAX_NODES; i++)
-            {
-                if (server.vz[i].active == 1)
-                {
-                    write(server.vz[i].fd, message, strlen(message));
-                }
-            }
-        }
-        else if (intr != MAX_NODES)
-        {
-            server.vz[x] = server.vz[intr];
-            server.vz[x].active = 1;
-            fprintf(stdout, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
-            sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
-            for (i = 1; i < MAX_NODES; i++)
-            {
-                if (server.vz[i].active == 1)
-                {
-                    write(server.vz[i].fd, message, strlen(message));
-                }
-            }
-            server.vz[intr].active = 0;
-        }
-        else
-        {
-            server.vz[x] = server.my_node;
-            server.vz[x].active = 0;
-        }
+        leave(x);
     }
     else
     {
         server.vz[x].bytes_recieved += num_bytes;
         if (strchr(server.vz[x].buffer, '\n') != NULL)
         {
-            sscanf(buff, "%s", str_temp);
+            sscanf(server.vz[x].buffer, "%s", str_temp);
 
             if (strcmp(str_temp, "NEW") == 0)
             {
-                sscanf(buff, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
+                sscanf(server.vz[x].buffer, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
                 server.vz[x] = temp;
                 server.vz[x].fd = save;
                 server.vz[x].active = 1;
-                sprintf(buff, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
-                write(server.vz[x].fd, buff, strlen(buff));
+                sprintf(server.vz[x].buffer, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
+                write(server.vz[x].fd, server.vz[x].buffer, MAX_BUFFER);
                 server.exptable[atoi(temp.id)] = atoi(temp.id);
                 fprintf(stdout, "node %s is connected to node %s\n", server.vz[x].id, server.my_node.id);
             }
-            if (strcmp(str_temp, "EXTERN") == 0)
+            else if (strcmp(str_temp, "EXTERN") == 0)
             {
-                sscanf(buff, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
+                sscanf(server.vz[x].buffer, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
                 server.vb = temp;
                 server.exptable[atoi(server.vz[x].id)] = atoi(server.vz[x].id);
                 server.exptable[atoi(temp.id)] = atoi(server.vz[x].id);
             }
-            if (strcmp(str_temp, "QUERY") == 0)
+            else if (strcmp(str_temp, "QUERY") == 0)
             {
-                sscanf(buff, "%s %s %s %s\n", str_temp, dest, origin, content);
+                sscanf(server.vz[x].buffer, "%s %s %s %s\n", str_temp, dest, origin, content);
                 server.exptable[atoi(origin)] = atoi(server.vz[x].id);
                 int res = handle_get(dest, content, origin);
                 if (res == 1)
                 {
-                    sprintf(buff, "CONTENT %s %s %s\n", origin, dest, content);
-                    write(server.vz[x].fd, buff, strlen(buff));
+                    sprintf(server.vz[x].buffer, "CONTENT %s %s %s\n", origin, dest, content);
+                    write(server.vz[x].fd, server.vz[x].buffer, MAX_BUFFER);
                 }
                 if (res == 2)
                 {
-                    sprintf(buff, "NOCONTENT %s %s %s\n", origin, dest, content);
-                    write(server.vz[x].fd, buff, strlen(buff));
+                    sprintf(server.vz[x].buffer, "NOCONTENT %s %s %s\n", origin, dest, content);
+                    write(server.vz[x].fd, server.vz[x].buffer, MAX_BUFFER);
                 }
             }
-            if (strcmp(str_temp, "NOCONTENT") == 0)
+            else if (strcmp(str_temp, "NOCONTENT") == 0)
             {
-                sscanf(buff, "%s %s %s %s\n", str_temp, origin, dest, content);
+                sscanf(server.vz[x].buffer, "%s %s %s %s\n", str_temp, origin, dest, content);
                 server.exptable[atoi(dest)] = atoi(server.vz[x].id);
                 if (strcmp(origin, server.my_node.id) != 0)
                 {
@@ -232,17 +185,17 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                     {
                         if (atoi(server.vz[i].id) == temp_id)
                         {
-                            sprintf(buff, "NOCONTENT %s %s %s\n", origin, dest, content);
-                            write(server.vz[i].fd, buff, strlen(buff));
+                            sprintf(server.vz[x].buffer, "NOCONTENT %s %s %s\n", origin, dest, content);
+                            write(server.vz[i].fd, server.vz[x].buffer, MAX_BUFFER);
                         }
                     }
                 }
                 else
                     fprintf(stdout, "name not available\n");
             }
-            if (strcmp(str_temp, "CONTENT") == 0)
+            else if (strcmp(str_temp, "CONTENT") == 0)
             {
-                sscanf(buff, "%s %s %s %s\n", str_temp, origin, dest, content);
+                sscanf(server.vz[x].buffer, "%s %s %s %s\n", str_temp, origin, dest, content);
                 server.exptable[atoi(dest)] = atoi(server.vz[x].id);
                 if (strcmp(origin, server.my_node.id) != 0)
                 {
@@ -251,20 +204,23 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                     {
                         if (atoi(server.vz[i].id) == temp_id)
                         {
-                            sprintf(buff, "CONTENT %s %s %s\n", origin, dest, content);
-                            write(server.vz[i].fd, buff, strlen(buff));
+                            sprintf(server.vz[x].buffer, "CONTENT %s %s %s\n", origin, dest, content);
+                            write(server.vz[i].fd, server.vz[x].buffer, MAX_BUFFER);
                         }
                     }
                 }
                 else
                     fprintf(stdout, "name is available\n");
             }
-            if (strcmp(str_temp, "WITHDRAW") == 0)
+            else if (strcmp(str_temp, "WITHDRAW") == 0)
             {
-                sscanf(buff, "%s %s\n", str_temp, dest);
+                sscanf(server.vz[x].buffer, "%s %s\n", str_temp, dest);
                 printf("withdraw %s\n", dest);
                 withdraw(atoi(dest), x);
             }
+            else
+                leave(x);
+
             memset(server.vz[x].buffer, 0, MAX_BUFFER);
             server.vz[x].bytes_recieved = 0;
         }
@@ -290,5 +246,64 @@ void withdraw(int node_le, int x)
             sprintf(buff, "WITHDRAW %s\n", char_node_le);
             write(server.vz[i].fd, buff, strlen(buff));
         }
+    }
+}
+
+void leave(int x)
+{
+    int intr = 0, i;
+    char message[MAX_BUFFER] = "";
+
+    for (intr = 1; intr < MAX_NODES; intr++)
+    {
+        if (server.vz[intr].active == 1)
+            break;
+    }
+    fprintf(stdout, "%s has left network %s\n", server.vz[x].id, server.net);
+    withdraw(atoi(server.vz[x].id), x);
+
+    close(server.vz[x].fd);
+
+    if (x > 0)
+        server.vz[x].active = 0;
+    else if (strcmp(server.my_node.id, server.vb.id) != 0) // VE saiu e nao é ancora, tem VI
+    {
+        server.vz[x] = server.vb;
+        server.vz[x].active = 1;
+        server.vz[x].fd = tcp_client(server.vb.ip, atoi(server.vb.port));
+        fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[x].id);
+
+        sprintf(message, "NEW %s %s %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
+        write(server.vz[x].fd, message, strlen(message));
+
+        sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
+        // for loop a enviar EXTERN aos intr
+        for (i = 1; i < MAX_NODES; i++)
+        {
+            if (server.vz[i].active == 1)
+            {
+                write(server.vz[i].fd, message, strlen(message));
+            }
+        }
+    }
+    else if (intr != MAX_NODES)
+    {
+        server.vz[x] = server.vz[intr];
+        server.vz[x].active = 1;
+        fprintf(stdout, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
+        sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
+        for (i = 1; i < MAX_NODES; i++)
+        {
+            if (server.vz[i].active == 1)
+            {
+                write(server.vz[i].fd, message, strlen(message));
+            }
+        }
+        server.vz[intr].active = 0;
+    }
+    else
+    {
+        server.vz[x] = server.my_node;
+        server.vz[x].active = 0;
     }
 }

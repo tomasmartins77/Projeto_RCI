@@ -66,6 +66,8 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP,
         sprintf(message, "NEW %s %s %s\n", id, server.my_node.ip, server.my_node.port);
         write(server.vz[0].fd, message, strlen(message));
     }
+    else
+        fprintf(stdout, "node %s is the first node in the network %s\n", server.my_node.id, server.net);
 
     strcpy(server.vz[0].id, bootid);
     strcpy(server.vz[0].ip, bootIP);
