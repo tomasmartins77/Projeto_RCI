@@ -19,7 +19,7 @@
 #include "connections.h"
 #include "fd_functions.h"
 
-#define MAX_NODES 99
+#define MAX_NODES 100
 #define MAX_NAME 100
 #define MAX_BUFFER 50
 #define SERVER_IP "193.136.138.142" // Change to the IP address of your server
