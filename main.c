@@ -111,7 +111,7 @@ int main(int argc, char *argv[])
                     }
                 }
             }
-            for (int x = 0; x < MAX_NODES; x++)
+            for (int x = 0; x < max_fd + 1; x++)
             {
                 if (server.vz[x].active == 1)
                 {
