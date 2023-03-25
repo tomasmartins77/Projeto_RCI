@@ -11,7 +11,7 @@ void clear(char *net, char *connect_ip, char *connect_port)
             sprintf(message, "UNREG %s 0%d", net, i);
         else
             sprintf(message, "UNREG %s %d", net, i);
-        UDP_server_message(message, buff, sizeof(buff), connect_ip, atoi(connect_port));
+        UDP_connection(message, buff, sizeof(buff), connect_ip, atoi(connect_port));
         if (strcmp(buff, "OKUNREG") != 0)
             exit(1);
     }
@@ -23,7 +23,7 @@ void show(char *net, char *connect_ip, char *connect_port)
     char message[13] = "", buff[1024] = "";
 
     sprintf(message, "NODES %s", net);
-    UDP_server_message(message, buff, sizeof(buff), connect_ip, atoi(connect_port));
+    UDP_connection(message, buff, sizeof(buff), connect_ip, atoi(connect_port));
     printf("%s", buff);
 }
 
@@ -33,7 +33,7 @@ int node_list(char *net, node_t *nodes, char *connect_ip, char *connect_port)
     char node_msg[10] = "";
 
     sprintf(node_msg, "NODES %s", net);
-    UDP_server_message(node_msg, buff, sizeof(buff), connect_ip, atoi(connect_port));
+    UDP_connection(node_msg, buff, sizeof(buff), connect_ip, atoi(connect_port));
 
     return parse_nodes(buff, nodes);
 }

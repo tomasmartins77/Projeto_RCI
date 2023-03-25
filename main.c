@@ -22,14 +22,15 @@ server_node server;
 
 int main(int argc, char *argv[])
 {
-    char connect_ip[16], connect_port[6];
+    char connect_ip[16] = "", connect_port[6] = "";
     srand(time(NULL));
-    int keyfd = STDIN_FILENO, client_socket, i;
+    int keyfd = STDIN_FILENO, client_socket, i, max_fd;
     fd_set rfds_list, rfds;
 
     for (i = 0; i < MAX_NODES; i++)
     {
         server.vz[i].active = 0;
+        server.vz[i].bytes_recieved = 0;
         server.exptable[i] = -1;
     }
 
@@ -40,7 +41,18 @@ int main(int argc, char *argv[])
     strcpy(server.my_node.ip, argv[1]);
     strcpy(server.my_node.port, argv[2]);
 
-    server.my_node.fd = create_server(server.my_node.ip, atoi(server.my_node.port));
+    while (1)
+    {
+        server.my_node.fd = create_server(server.my_node.ip, atoi(server.my_node.port));
+        if (server.my_node.fd > 0)
+            break;
+
+        fprintf(stdout, "IP: ");
+        fgets(server.my_node.ip, 16, stdin);
+        fprintf(stdout, "Port: ");
+        fgets(server.my_node.port, 6, stdin);
+    }
+
     server.my_node.active = 1;
 
     if (argc == 5)
@@ -59,16 +71,21 @@ int main(int argc, char *argv[])
         FD_ZERO(&rfds_list);                   // poem todos a 0
         FD_SET(keyfd, &rfds_list);             // adiciona o keyboard
         FD_SET(server.my_node.fd, &rfds_list); // adiciona o server
+        max_fd = max(keyfd, server.my_node.fd);
         for (i = 0; i < MAX_NODES; i++)
         {
             if (server.vz[i].active == 1)
+            {
+                max_fd = max(max_fd, server.vz[i].fd);
                 FD_SET(server.vz[i].fd, &rfds_list);
+            }
         }
+
         rfds = rfds_list;
-        int ready = select(MAX_NODES + 1, &rfds, NULL, NULL, NULL); // meter o maximo de fd ativos e nao MAX_NODES
+        int ready = select(max_fd + 1, &rfds, NULL, NULL, NULL); // meter o maximo de fd ativos e nao MAX_NODES
         if (ready < 0)
         { /*error*/
-            fprintf(stdout, "\n error in select \n");
+            fprintf(stdout, "\n error in select, something very bad happened\n");
             exit(1);
         }
         for (int i = 0; i < ready; i++)
@@ -81,8 +98,8 @@ int main(int argc, char *argv[])
             {
                 if ((client_socket = accept(server.my_node.fd, (struct sockaddr *)&client_addr, &cli_addr_size)) < 0)
                 {
-                    perror("accept");
-                    exit(EXIT_FAILURE);
+                    fprintf(stdout, "Error accepting connection, trying again\n");
+                    continue;
                 }
                 for (i = 0; i < MAX_NODES; i++)
                 {

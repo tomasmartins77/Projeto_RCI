@@ -52,11 +52,16 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
     else if (strcmp(message, "leave") == 0 && flag_join == 0)
         fprintf(stdout, "no node created\n");
     else if (strcmp(message, "create") == 0 && flag_join == 1)
-        flag_create = handle_create(arg1);
+        flag_create = handle_create(arg1, flag_create);
     else if (strcmp(message, "create") == 0 && flag_join == 0)
-        fprintf(stdout, "no file created");
+        fprintf(stdout, "no file created\n");
     else if (strcmp(message, "delete") == 0 && flag_create > 0)
+    {
         handle_delete(arg1);
+        flag_create--;
+    }
+    else if (strcmp(message, "delete") == 0 && flag_create == 0)
+        fprintf(stdout, "no file to be deleted\n");
     else if (strcmp(message, "get") == 0 && strcmp(arg1, server.my_node.id) != 0 && flag_join == 1)
     {
         if (check_input_format(buff, message) == 0)
@@ -110,19 +115,28 @@ fd_set client_fd_set(fd_set rfds_list, int x)
     memset(buff, 0, 1024);
     int save = server.vz[x].fd;
     int intr = 0, i;
+    int num_bytes = 0;
 
     for (intr = 1; intr < MAX_NODES; intr++)
     {
         if (server.vz[intr].active == 1)
             break;
     }
-
-    if (read(server.vz[x].fd, buff, 1024) == 0)
+    num_bytes = read(server.vz[x].fd, (server.vz[x].buffer + server.vz[x].bytes_recieved), (MAX_BUFFER - server.vz[x].bytes_recieved));
+    if (num_bytes == -1)
+    {
+        fprintf(stdout, "error reading from socket\n");
+        memset(server.vz[x].buffer, 0, MAX_BUFFER);
+        server.vz[x].bytes_recieved = 0;
+        return rfds_list;
+    }
+    if (num_bytes == 0)
     {
         fprintf(stdout, "%s has left network %s\n", server.vz[x].id, server.net);
         withdraw(atoi(server.vz[x].id), x);
 
         close(server.vz[x].fd);
+
         if (x > 0)
             server.vz[x].active = 0;
         else if (strcmp(server.my_node.id, server.vb.id) != 0) // VE saiu e nao é ancora, tem VI
@@ -168,85 +182,91 @@ fd_set client_fd_set(fd_set rfds_list, int x)
     }
     else
     {
-        sscanf(buff, "%s", str_temp);
+        server.vz[x].bytes_recieved += num_bytes;
+        if (strchr(server.vz[x].buffer, '\n') != NULL)
+        {
+            sscanf(buff, "%s", str_temp);
 
-        if (strcmp(str_temp, "NEW") == 0)
-        {
-            sscanf(buff, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
-            server.vz[x] = temp;
-            server.vz[x].fd = save;
-            server.vz[x].active = 1;
-            sprintf(buff, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
-            write(server.vz[x].fd, buff, strlen(buff));
-            server.exptable[atoi(temp.id)] = atoi(temp.id);
-            fprintf(stdout, "node %s is connected to node %s\n", server.vz[x].id, server.my_node.id);
-        }
-        if (strcmp(str_temp, "EXTERN") == 0)
-        {
-            sscanf(buff, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
-            server.vb = temp;
-            server.exptable[atoi(server.vz[x].id)] = atoi(server.vz[x].id);
-            server.exptable[atoi(temp.id)] = atoi(server.vz[x].id);
-        }
-        if (strcmp(str_temp, "QUERY") == 0)
-        {
-            sscanf(buff, "%s %s %s %s\n", str_temp, dest, origin, content);
-            server.exptable[atoi(origin)] = atoi(server.vz[x].id);
-            int res = handle_get(dest, content, origin);
-            if (res == 1)
+            if (strcmp(str_temp, "NEW") == 0)
             {
-                sprintf(buff, "CONTENT %s %s %s\n", origin, dest, content);
+                sscanf(buff, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
+                server.vz[x] = temp;
+                server.vz[x].fd = save;
+                server.vz[x].active = 1;
+                sprintf(buff, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
                 write(server.vz[x].fd, buff, strlen(buff));
+                server.exptable[atoi(temp.id)] = atoi(temp.id);
+                fprintf(stdout, "node %s is connected to node %s\n", server.vz[x].id, server.my_node.id);
             }
-            if (res == 2)
+            if (strcmp(str_temp, "EXTERN") == 0)
             {
-                sprintf(buff, "NOCONTENT %s %s %s\n", origin, dest, content);
-                write(server.vz[x].fd, buff, strlen(buff));
+                sscanf(buff, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
+                server.vb = temp;
+                server.exptable[atoi(server.vz[x].id)] = atoi(server.vz[x].id);
+                server.exptable[atoi(temp.id)] = atoi(server.vz[x].id);
             }
-        }
-        if (strcmp(str_temp, "NOCONTENT") == 0)
-        {
-            sscanf(buff, "%s %s %s %s\n", str_temp, origin, dest, content);
-            server.exptable[atoi(dest)] = atoi(server.vz[x].id);
-            if (strcmp(origin, server.my_node.id) != 0)
+            if (strcmp(str_temp, "QUERY") == 0)
             {
-                int temp_id = server.exptable[atoi(origin)];
-                for (int i = 0; i < MAX_NODES; i++)
+                sscanf(buff, "%s %s %s %s\n", str_temp, dest, origin, content);
+                server.exptable[atoi(origin)] = atoi(server.vz[x].id);
+                int res = handle_get(dest, content, origin);
+                if (res == 1)
                 {
-                    if (atoi(server.vz[i].id) == temp_id)
-                    {
-                        sprintf(buff, "NOCONTENT %s %s %s\n", origin, dest, content);
-                        write(server.vz[i].fd, buff, strlen(buff));
-                    }
+                    sprintf(buff, "CONTENT %s %s %s\n", origin, dest, content);
+                    write(server.vz[x].fd, buff, strlen(buff));
+                }
+                if (res == 2)
+                {
+                    sprintf(buff, "NOCONTENT %s %s %s\n", origin, dest, content);
+                    write(server.vz[x].fd, buff, strlen(buff));
                 }
             }
-            else
-                fprintf(stdout, "name not available\n");
-        }
-        if (strcmp(str_temp, "CONTENT") == 0)
-        {
-            sscanf(buff, "%s %s %s %s\n", str_temp, origin, dest, content);
-            server.exptable[atoi(dest)] = atoi(server.vz[x].id);
-            if (strcmp(origin, server.my_node.id) != 0)
+            if (strcmp(str_temp, "NOCONTENT") == 0)
             {
-                int temp_id = server.exptable[atoi(origin)];
-                for (int i = 0; i < MAX_NODES; i++)
+                sscanf(buff, "%s %s %s %s\n", str_temp, origin, dest, content);
+                server.exptable[atoi(dest)] = atoi(server.vz[x].id);
+                if (strcmp(origin, server.my_node.id) != 0)
                 {
-                    if (atoi(server.vz[i].id) == temp_id)
+                    int temp_id = server.exptable[atoi(origin)];
+                    for (int i = 0; i < MAX_NODES; i++)
                     {
-                        sprintf(buff, "CONTENT %s %s %s\n", origin, dest, content);
-                        write(server.vz[i].fd, buff, strlen(buff));
+                        if (atoi(server.vz[i].id) == temp_id)
+                        {
+                            sprintf(buff, "NOCONTENT %s %s %s\n", origin, dest, content);
+                            write(server.vz[i].fd, buff, strlen(buff));
+                        }
                     }
                 }
+                else
+                    fprintf(stdout, "name not available\n");
             }
-            else
-                fprintf(stdout, "name is available\n");
-        }
-        if (strcmp(str_temp, "WITHDRAW") == 0)
-        {
-            sscanf(buff, "%s %s\n", str_temp, dest);
-            printf("withdraw %s\n", dest);
-            withdraw(atoi(dest), x);
+            if (strcmp(str_temp, "CONTENT") == 0)
+            {
+                sscanf(buff, "%s %s %s %s\n", str_temp, origin, dest, content);
+                server.exptable[atoi(dest)] = atoi(server.vz[x].id);
+                if (strcmp(origin, server.my_node.id) != 0)
+                {
+                    int temp_id = server.exptable[atoi(origin)];
+                    for (int i = 0; i < MAX_NODES; i++)
+                    {
+                        if (atoi(server.vz[i].id) == temp_id)
+                        {
+                            sprintf(buff, "CONTENT %s %s %s\n", origin, dest, content);
+                            write(server.vz[i].fd, buff, strlen(buff));
+                        }
+                    }
+                }
+                else
+                    fprintf(stdout, "name is available\n");
+            }
+            if (strcmp(str_temp, "WITHDRAW") == 0)
+            {
+                sscanf(buff, "%s %s\n", str_temp, dest);
+                printf("withdraw %s\n", dest);
+                withdraw(atoi(dest), x);
+            }
+            memset(server.vz[x].buffer, 0, MAX_BUFFER);
+            server.vz[x].bytes_recieved = 0;
         }
     }
     return rfds_list;

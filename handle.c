@@ -8,7 +8,7 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
     inicialize_nodes(nodes);
     int count = node_list(net, nodes, connect_ip, connect_port);
     int int_connect = 0, i = 0;
-    char id_temp[3] = "";
+    char id_temp[3] = "", message[50] = "", response[6] = "";
 
     if (count > 0)
     {
@@ -39,12 +39,16 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
         handle_djoin(net, id, id, server.my_node.ip, server.my_node.port, connect_ip, connect_port);
     }
 
+    sprintf(message, "REG %s %s %s %s", net, id, server.my_node.ip, server.my_node.port);
+    UDP_connection(message, response, sizeof(response), connect_ip, atoi(connect_port));
+    if (strcmp(response, "OKREG") == 0)
+        fprintf(stdout, "node %s is correctly registraded in network %s\n", server.my_node.id, server.net);
     return count;
 }
 
 int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP, char *connect_ip, char *connect_port)
 {
-    char message[50] = "", response[6] = "";
+    char message[50] = "";
     strcpy(server.my_node.id, id);
 
     if (strcmp(id, bootid) != 0)
@@ -56,6 +60,9 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP,
             return -1;
 
         server.vz[0].active = 1;
+
+        fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[0].id);
+
         sprintf(message, "NEW %s %s %s\n", id, server.my_node.ip, server.my_node.port);
         write(server.vz[0].fd, message, strlen(message));
     }
@@ -66,10 +73,6 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP,
 
     server.vb = server.my_node;
 
-    sprintf(message, "REG %s %s %s %s", net, id, server.my_node.ip, server.my_node.port);
-    UDP_server_message(message, response, sizeof(response), connect_ip, atoi(connect_port));
-    if (strcmp(response, "OKREG") == 0)
-        fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[0].id);
     return 0;
 }
 
@@ -93,16 +96,26 @@ void handle_leave(char *net, char *id, char *connect_ip, char *connect_port)
     }
     handle_cr();
     sprintf(message, "UNREG %s %s", net, id);
-    UDP_server_message(message, response, sizeof(response), connect_ip, atoi(connect_port));
+    UDP_connection(message, response, sizeof(response), connect_ip, atoi(connect_port));
     if (strcmp(response, "OKUNREG") == 0)
         fprintf(stdout, "%s left the network %s\n", server.my_node.id, server.net);
 }
 
-int handle_create(char *name)
+int handle_create(char *name, int flag)
 {
-    int i, flag = 0;
+    int i;
+    if (strcmp(name, "\0") == 0)
+    {
+        fprintf(stdout, "no name to create file\n");
+        return flag;
+    }
     for (i = 0; i < MAX_NODES; i++)
     {
+        if (strcmp(server.names[i], name) == 0)
+        {
+            fprintf(stdout, "file already exists: %s\n", name);
+            return flag;
+        }
         if (strcmp(server.names[i], "\0") == 0)
         {
             strcpy(server.names[i], name);
@@ -110,7 +123,10 @@ int handle_create(char *name)
             break;
         }
     }
-    fprintf(stdout, "created file: %s\n", server.names[i]);
+    if (flag == 0)
+        fprintf(stdout, "no space to create file: %s\n", name);
+    else
+        fprintf(stdout, "created file: %s\n", server.names[i]);
     return flag;
 }
 

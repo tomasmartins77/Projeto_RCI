@@ -24,7 +24,7 @@ int handle_join(char *, char *, char *, char *);
 
 int handle_djoin(char *, char *, char *, char *, char *, char *, char *);
 
-int handle_create(char *);
+int handle_create(char *, int);
 
 void handle_delete(char *);
 

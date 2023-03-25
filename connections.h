@@ -17,10 +17,12 @@
 #include "handle.h"
 #include "connections.h"
 
-void UDP_server_message(char *message, char *response, int len, char *, int);
+int UDP_server_message(char *, char *, int, char *, int);
 
-int tcp_client(char *ip_address, int portno);
+void UDP_connection(char *, char *, int, char *, int);
 
-int create_server(char *ip_address, int port);
+int tcp_client(char *, int);
+
+int create_server(char *, int);
 
 #endif
