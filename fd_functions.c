@@ -110,17 +110,11 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
 
 fd_set client_fd_set(fd_set rfds_list, int x)
 {
-    char str_temp[10] = "", message[50] = "", origin[3] = "", dest[3] = "", content[100] = "";
+    char str_temp[10] = "", origin[3] = "", dest[3] = "", content[100] = "";
     node_t temp = {};
     int save = server.vz[x].fd;
-    int intr = 0, i;
     int num_bytes = 0;
 
-    for (intr = 1; intr < MAX_NODES; intr++)
-    {
-        if (server.vz[intr].active == 1)
-            break;
-    }
     num_bytes = read(server.vz[x].fd, (server.vz[x].buffer + server.vz[x].bytes_recieved), (MAX_BUFFER - server.vz[x].bytes_recieved));
     if (num_bytes == -1)
     {

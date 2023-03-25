@@ -21,7 +21,7 @@
 
 #define MAX_NODES 100
 #define MAX_NAME 100
-#define MAX_BUFFER 50
+#define MAX_BUFFER 255
 #define SERVER_IP "193.136.138.142" // Change to the IP address of your server
 #define SERVER_PORT "59000"         // Change to the port number of your server
 
