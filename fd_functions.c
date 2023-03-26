@@ -140,7 +140,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 server.vz[x] = temp;
                 server.vz[x].fd = save;
                 server.vz[x].active = 1;
-                sprintf(server.vz[x].buffer, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
+                sprintf(server.vz[x].buffer, "EXTE \n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
                 write(server.vz[x].fd, server.vz[x].buffer, MAX_BUFFER);
                 server.exptable[atoi(temp.id)] = atoi(temp.id);
                 fprintf(stdout, "node %s is connected to node %s\n", server.vz[x].id, server.my_node.id);

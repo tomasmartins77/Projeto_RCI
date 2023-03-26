@@ -1,43 +1,84 @@
 #include "utility.h"
 
 extern server_node server;
-
+/* This function is designed to unregister all nodes from a  given network using UDP communication */
 void clear(char *net, char *connect_ip, char *connect_port)
 {
     char message[13] = "", buff[8] = "";
+    /* Loop through a maximum number of nodes and unregister from the network */
     for (int i = 0; i < MAX_NODES; i++)
     {
+        /* Construct the message to unregister from the network */
         if (i < 10)
             sprintf(message, "UNREG %s 0%d", net, i);
         else
             sprintf(message, "UNREG %s %d", net, i);
+        /* Send the unregister message to the specified IP address and port using UDP */
         UDP_connection(message, buff, sizeof(buff), connect_ip, atoi(connect_port));
+        /* If the response is not "OKUNREG", exit the program with an error code of 1 */
         if (strcmp(buff, "OKUNREG") != 0)
             exit(1);
     }
     printf("acabei\n");
 }
 
+/* This function is designed to request and display a list of nodes on a given network using UDP communication.*/
 void show(char *net, char *connect_ip, char *connect_port)
 {
     char message[13] = "", buff[1024] = "";
 
+    /* Construct the message to request a list of nodes on the network */
     sprintf(message, "NODES %s", net);
+    /* Send the message to the specified IP address and port using UDP */
     UDP_connection(message, buff, sizeof(buff), connect_ip, atoi(connect_port));
+    /* Print the response, which should contain a list of nodes on the network */
     printf("%s", buff);
 }
 
+/*
+ * node_list - Requests and parses a list of nodes on a network using UDP communication
+ *
+ * This function sends a message to a specified IP address and port using UDP to request a list of nodes
+ * on a network identified by a given network name. The response is then parsed and stored in an array
+ * of node_t structs passed as a parameter.
+ *
+ * Parameters:
+ *     net: A pointer to a character array containing the name of the network
+ *     nodes: An array of node_t structs to store the parsed nodes in
+ *     connect_ip: A pointer to a character array containing the IP address to connect to
+ *     connect_port: A pointer to a character array containing the port number to connect to
+ *
+ * Returns:
+ *     An integer value representing the result of calling parse_nodes with the contents of buff and the nodes array
+ */
 int node_list(char *net, node_t *nodes, char *connect_ip, char *connect_port)
 {
     char buff[1024] = "";
     char node_msg[10] = "";
 
+    /* Construct the message to request a list of nodes on the network */
     sprintf(node_msg, "NODES %s", net);
+    /* Send the message to the specified IP address and port using UDP */
     UDP_connection(node_msg, buff, sizeof(buff), connect_ip, atoi(connect_port));
 
+    /* Parse the list of nodes from the response and store them in the `nodes` array */
     return parse_nodes(buff, nodes);
 }
 
+/*
+ * parse_nodes - Parses a string containing a list of nodes and stores the results in an array
+ *
+ * This function takes a string containing a list of nodes separated by newline characters and parses
+ * each line into a node_t struct. The resulting nodes are stored in an array passed as a parameter.
+ * The function returns the number of nodes parsed and stored in the array.
+ *
+ * Parameters:
+ *     nodes_str: A pointer to a character array containing the list of nodes to parse
+ *     nodes: An array of node_t structs to store the parsed nodes in
+ *
+ * Returns:
+ *     An integer value representing the number of nodes parsed and stored in the `nodes` array
+ */
 int parse_nodes(char *nodes_str, node_t *nodes)
 {
     char *line;
@@ -86,7 +127,17 @@ int parse_nodes(char *nodes_str, node_t *nodes)
     free(delete);
     return node_count;
 }
-
+/*
+ * This function takes a node ID, a count of nodes, and a list of nodes as input parameters.
+ * It iterates through the list of nodes and checks if any node has a matching ID that is not associated with
+ * the IP address "0". If a match is found, the function returns 0, indicating that the node is verified.
+ * If no match is found, the function returns 1, indicating that the node is not verified.
+ *
+ * param id The node ID to verify
+ * param count The total number of nodes in the list
+ * param nodes A pointer to the first element of the list of nodes
+ * return 0 if the node is verified, 1 otherwise
+ */
 int verify_node(char *id, int count, node_t *nodes)
 {
     for (int i = 0; i < count; i++)
@@ -96,27 +147,72 @@ int verify_node(char *id, int count, node_t *nodes)
     }
     return 1;
 }
+/*
 
+*Generates a random integer between 0 and 99 and returns it as a formatted string
+*This function generates a random integer between 0 and 99 using the rand() function from the standard
+*C library. The resulting integer is then formatted as a string with two digits, using the sprintf()
+*function, and stored in a character array passed as a parameter. The function returns the character
+*array containing the formatted random number.
+*Parameters:
+    new_str  A pointer to a character array to store the formatted random number in
+*Returns:
+    A pointer to the character array containing the formatted random number
+*/
 char *random_number(char *new_str)
 {
     int number = rand() % 100;
     sprintf(new_str, "%02d", number);
     return new_str;
 }
+/*
+ * timeout - Waits for a socket to become ready for reading for a specified amount of time
+ *
+ * This function sets a timeout value and waits for the specified socket to become ready for reading,
+ * using the select() function from the standard C library. If the socket becomes ready before the
+ * timeout expires, the function returns. Otherwise, it does not return and the program can continue
+ * executing.
+ *
+ * Parameters:
+ *     time: The number of seconds to wait for the socket to become ready
+ *     socket: The file descriptor of the socket to wait for
+ *
+ * Returns:
+ *     None
+ */
 
 void timeout(int time, int socket)
 {
+    // Set timeout value
     struct timeval timeout;
     timeout.tv_sec = time;
     timeout.tv_usec = 0;
+
+    // Initialize file descriptor set and add socket to it
     fd_set rfds;
     FD_ZERO(&rfds);
     FD_SET(socket, &rfds);
+
+    // Wait for socket to become ready or timeout to expire
     select(socket + 1, &rfds, NULL, NULL, &timeout);
+
+    // Check if socket is ready for reading
     if (FD_ISSET(socket, &rfds))
         return;
 }
-
+/*
+ * initialize_nodes - Initializes an array of node_t structs with empty values
+ *
+ * This function takes an array of node_t structs and initializes each element with empty values for the id,
+ * ip, and port fields, using the strcpy() function from the standard C library. The array should be passed
+ * as a parameter.
+ *
+ * Parameters:
+ *     nodes: An array of node_t structs to initialize
+ *
+ * Returns:
+ *     None
+ */
 void inicialize_nodes(node_t *nodes)
 {
     for (int i = 0; i < MAX_NODES; i++)
@@ -126,6 +222,15 @@ void inicialize_nodes(node_t *nodes)
         strcpy(nodes[i].port, "\0");
     }
 }
+/**
+ * Checks if the input string is in the correct format for the specified message
+ * 
+ * Parameters:
+ *  input: the input string to be checked
+ *  message: the message type to be checked for ("join", "djoin", "leave", "get")
+ * Return:
+ *  int: 1 if the input is in the correct format, 0 otherwise
+ */
 
 int check_input_format(char *input, char *message)
 {
