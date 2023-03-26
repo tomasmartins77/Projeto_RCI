@@ -53,7 +53,7 @@ void show(char *net, char *connect_ip, char *connect_port)
  */
 int node_list(char *net, node_t *nodes, char *connect_ip, char *connect_port)
 {
-    char buff[1024] = "";
+    char buff[2500] = "";
     char node_msg[10] = "";
 
     /* Construct the message to request a list of nodes on the network */
