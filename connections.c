@@ -1,7 +1,20 @@
 #include "connections.h"
 
 extern server_node server;
-
+/*
+*Function: UDP_server_message
+*Brief:
+*   UDP server message function sends a message to a server and waits for a response.
+*Parameters:
+*   message: pointer to the message to be sent to the server
+*   response: pointer to the buffer to store the response from the server
+*   len: length of the response buffer
+*   connect_ip: IP address of the server
+*   connect_port: port number of the server
+*Return Value:
+*   0 on success
+*   -1 on error
+*/
 int UDP_server_message(char *message, char *response, int len, char *connect_ip, int connect_port)
 {
     int sockfd;
@@ -35,7 +48,20 @@ int UDP_server_message(char *message, char *response, int len, char *connect_ip,
 
     return 0;
 }
-
+/*
+*Function: UDP_connection
+*Brief:
+*   UDP connection function sends a message to a server and waits for a response.
+*   If the first attempt fails, the function tries to connect to a default server.
+*Parameters:
+*   message: pointer to the message to be sent to the server
+*   response: pointer to the buffer to store the response from the server
+*   len: length of the response buffer
+*   connect_ip: IP address of the server
+*   connect_port: port number of the server
+*  Return Value:
+*   none
+*/
 void UDP_connection(char *message, char *response, int len, char *connect_ip, int connect_port)
 {
     if (UDP_server_message(message, response, len, connect_ip, connect_port) == -1)
@@ -47,7 +73,17 @@ void UDP_connection(char *message, char *response, int len, char *connect_ip, in
 
     return;
 }
-
+/*
+*Function: tcp_client
+*Brief:
+*    TCP client function creates a socket and connects to a server at the specified IP address and port number.
+*Parameters:
+*   ip_address: IP address of the server
+*   portno: port number of the server
+*Return Value:
+*   socket file descriptor on success
+*   -1 on error
+*/
 int tcp_client(char *ip_address, int portno)
 {
     int sockfd;
@@ -79,7 +115,18 @@ int tcp_client(char *ip_address, int portno)
 
     return sockfd;
 }
-
+/*
+*Function: create_server
+*Brief:
+*The create_server function creates a socket, binds it to the specified IP address and port number,
+*and listens for incoming connections from clients.
+*Parameters:
+*   ip_address: IP address of the server
+*   port: port number of the server
+*Return Value:
+*server file descriptor on success
+*-1 on error
+*/
 int create_server(char *ip_address, int port)
 {
     int server_fd;
