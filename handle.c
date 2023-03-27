@@ -184,7 +184,7 @@ int handle_get(char *dest, char *name, char *origem)
         sprintf(buff, "QUERY %s %s %s\n", dest, origem, name);
         for (int i = 0; i < MAX_NODES; i++)
         {
-            if (server.vz[i].active == 1 && atoi(server.vz[i].id) != atoi(server.vz[i].id))
+            if (server.vz[i].active == 1 && atoi(server.vz[i].id) != atoi(origem))
             {
                 write(server.vz[i].fd, buff, strlen(buff));
             }
@@ -196,7 +196,7 @@ int handle_get(char *dest, char *name, char *origem)
 
 void handle_st()
 {
-    fprintf(stdout, "\n\nMy node is %s, here are my neighbours:\n", server.my_node.id);
+    fprintf(stdout, "My node is %s, here are my neighbours:\n", server.my_node.id);
     fprintf(stdout, "Extern: %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
     fprintf(stdout, "Backup: %s %s %s\n", server.vb.id, server.vb.ip, server.vb.port);
     fprintf(stdout, "Interns:\n");
@@ -210,7 +210,7 @@ void handle_st()
 
 void handle_sn()
 {
-    fprintf(stdout, "\n\nHere are the files of node %s:\n", server.my_node.id);
+    fprintf(stdout, "Here are the files of node %s:\n", server.my_node.id);
     for (int i = 0; i < 50; i++)
     {
         if (strcmp(server.names[i], "\0") != 0)
@@ -223,12 +223,13 @@ void handle_sn()
 
 void handle_sr()
 {
-    fprintf(stdout, "\n\nHere is the expedition table of node %s:\n", server.my_node.id);
+    fprintf(stdout, "Here is the expedition table of node %s:\n", server.my_node.id);
+    fprintf(stdout, "destination --> neighbour\n");
     for (int i = 0; i < MAX_NODES; i++)
     {
         if (server.exptable[i] != -1)
         {
-            printf("%d-->%d\n", i, server.exptable[i]);
+            printf("  %d  -->  %d  \n", i, server.exptable[i]);
         }
     }
     fprintf(stdout, "\n\n");
