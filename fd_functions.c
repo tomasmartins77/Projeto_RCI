@@ -140,17 +140,15 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 server.vz[x] = temp;
                 server.vz[x].fd = save;
                 server.vz[x].active = 1;
-                sprintf(server.vz[x].buffer, "EXTE \n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
+                sprintf(server.vz[x].buffer, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
                 write(server.vz[x].fd, server.vz[x].buffer, MAX_BUFFER);
-                server.exptable[atoi(temp.id)] = atoi(temp.id);
+
                 fprintf(stdout, "node %s is connected to node %s\n", server.vz[x].id, server.my_node.id);
             }
             else if (strcmp(str_temp, "EXTERN") == 0)
             {
                 sscanf(server.vz[x].buffer, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
                 server.vb = temp;
-                server.exptable[atoi(server.vz[x].id)] = atoi(server.vz[x].id);
-                server.exptable[atoi(temp.id)] = atoi(server.vz[x].id);
             }
             else if (strcmp(str_temp, "QUERY") == 0)
             {
@@ -209,7 +207,6 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             else if (strcmp(str_temp, "WITHDRAW") == 0)
             {
                 sscanf(server.vz[x].buffer, "%s %s\n", str_temp, dest);
-                printf("withdraw %s\n", dest);
                 withdraw(atoi(dest), x);
             }
             else

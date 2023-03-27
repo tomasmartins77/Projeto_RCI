@@ -49,7 +49,7 @@ int main(int argc, char *argv[])
 
         fprintf(stdout, "IP: ");
         fgets(server.my_node.ip, 16, stdin);
-        fprintf(stdout, "Port: ");
+        fprintf(stdout, "\nPort: ");
         fgets(server.my_node.port, 6, stdin);
     }
 

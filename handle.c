@@ -33,6 +33,7 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
             if (i == count)
                 break;
         }
+        fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[0].id);
     }
     if (count == 0 || i == count)
     {
@@ -42,7 +43,7 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
     sprintf(message, "REG %s %s %s %s", net, id, server.my_node.ip, server.my_node.port);
     UDP_connection(message, response, sizeof(response), connect_ip, atoi(connect_port));
     if (strcmp(response, "OKREG") == 0)
-        fprintf(stdout, "node %s is correctly registraded in network %s\n", server.my_node.id, server.net);
+        fprintf(stdout, "node %s is correctly registered in network %s\n", server.my_node.id, server.net);
     return count;
 }
 
@@ -61,13 +62,11 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP,
 
         server.vz[0].active = 1;
 
-        fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[0].id);
-
         sprintf(message, "NEW %s %s %s\n", id, server.my_node.ip, server.my_node.port);
         write(server.vz[0].fd, message, strlen(message));
     }
     else
-        fprintf(stdout, "node %s is the first node in the network %s\n", server.my_node.id, server.net);
+        fprintf(stdout, "node %s is the first node in network %s\n", server.my_node.id, server.net);
 
     strcpy(server.vz[0].id, bootid);
     strcpy(server.vz[0].ip, bootIP);
@@ -100,7 +99,7 @@ void handle_leave(char *net, char *id, char *connect_ip, char *connect_port)
     sprintf(message, "UNREG %s %s", net, id);
     UDP_connection(message, response, sizeof(response), connect_ip, atoi(connect_port));
     if (strcmp(response, "OKUNREG") == 0)
-        fprintf(stdout, "%s left the network %s\n", server.my_node.id, server.net);
+        fprintf(stdout, "%s left network %s\n", server.my_node.id, server.net);
 }
 
 int handle_create(char *name, int flag)
@@ -185,7 +184,7 @@ int handle_get(char *dest, char *name, char *origem)
         sprintf(buff, "QUERY %s %s %s\n", dest, origem, name);
         for (int i = 0; i < MAX_NODES; i++)
         {
-            if (server.vz[i].active == 1 && atoi(server.vz[i].id) != atoi(origem))
+            if (server.vz[i].active == 1 && atoi(server.vz[i].id) != atoi(server.vz[i].id))
             {
                 write(server.vz[i].fd, buff, strlen(buff));
             }
@@ -197,19 +196,21 @@ int handle_get(char *dest, char *name, char *origem)
 
 void handle_st()
 {
+    fprintf(stdout, "\n\nMy node is %s, here are my neighbours:\n", server.my_node.id);
     fprintf(stdout, "Extern: %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
     fprintf(stdout, "Backup: %s %s %s\n", server.vb.id, server.vb.ip, server.vb.port);
     fprintf(stdout, "Interns:\n");
     for (int i = 1; i < MAX_NODES; i++)
     {
         if (server.vz[i].active == 1)
-            fprintf(stdout, "%s %s %s\n", server.vz[i].id, server.vz[i].ip, server.vz[i].port);
+            fprintf(stdout, "-> %s %s %s\n", server.vz[i].id, server.vz[i].ip, server.vz[i].port);
     }
+    fprintf(stdout, "\n\n");
 }
 
 void handle_sn()
 {
-    fprintf(stdout, "files:\n");
+    fprintf(stdout, "\n\nHere are the files of node %s:\n", server.my_node.id);
     for (int i = 0; i < 50; i++)
     {
         if (strcmp(server.names[i], "\0") != 0)
@@ -217,10 +218,12 @@ void handle_sn()
             fprintf(stdout, "%s\n", server.names[i]);
         }
     }
+    fprintf(stdout, "\n\n");
 }
 
 void handle_sr()
 {
+    fprintf(stdout, "\n\nHere is the expedition table of node %s:\n", server.my_node.id);
     for (int i = 0; i < MAX_NODES; i++)
     {
         if (server.exptable[i] != -1)
@@ -228,6 +231,7 @@ void handle_sr()
             printf("%d-->%d\n", i, server.exptable[i]);
         }
     }
+    fprintf(stdout, "\n\n");
 }
 
 void handle_cr()
