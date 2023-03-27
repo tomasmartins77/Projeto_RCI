@@ -150,7 +150,7 @@ void handle_delete(char *name)
     }
 }
 
-int handle_get(char *dest, char *name, char *origem)
+int handle_get(char *dest, char *name, char *origem, int x)
 {
     int flag = 2;
     if (strcmp(dest, server.my_node.id) == 0)
@@ -184,7 +184,7 @@ int handle_get(char *dest, char *name, char *origem)
         sprintf(buff, "QUERY %s %s %s\n", dest, origem, name);
         for (int i = 0; i < MAX_NODES; i++)
         {
-            if (server.vz[i].active == 1 && atoi(server.vz[i].id) != atoi(origem))
+            if (server.vz[i].active == 1 && i != x)
             {
                 write(server.vz[i].fd, buff, strlen(buff));
             }
@@ -229,7 +229,7 @@ void handle_sr()
     {
         if (server.exptable[i] != -1)
         {
-            printf("  %d  -->  %d  \n", i, server.exptable[i]);
+            printf("     %02d     -->    %02d  \n", i, server.exptable[i]);
         }
     }
     fprintf(stdout, "\n\n");

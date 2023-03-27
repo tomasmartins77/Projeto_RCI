@@ -28,7 +28,7 @@ int handle_create(char *, int);
 
 void handle_delete(char *);
 
-int handle_get(char *, char *, char *);
+int handle_get(char *, char *, char *, int);
 
 void handle_cr();
 

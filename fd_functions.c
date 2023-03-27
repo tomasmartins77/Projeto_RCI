@@ -69,7 +69,7 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
             fprintf(stdout, "Invalid arguments\n");
             return rfds_list;
         }
-        handle_get(arg1, arg2, server.my_node.id);
+        handle_get(arg1, arg2, server.my_node.id, -1);
     }
     else if (strcmp(message, "get") == 0 && strcmp(arg1, server.my_node.id) == 0 && flag_join == 1)
         fprintf(stdout, "cannot get file from yourself\n");
@@ -141,7 +141,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 server.vz[x].fd = save;
                 server.vz[x].active = 1;
                 sprintf(server.vz[x].buffer, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
-                write(server.vz[x].fd, server.vz[x].buffer, MAX_BUFFER);
+                write(server.vz[x].fd, server.vz[x].buffer, strlen(server.vz[x].buffer));
 
                 fprintf(stdout, "node %s is connected to node %s\n", server.vz[x].id, server.my_node.id);
             }
@@ -149,21 +149,23 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             {
                 sscanf(server.vz[x].buffer, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
                 server.vb = temp;
+                if (strcmp(server.vz[x].id, server.vb.id) == 0)
+                    leave(x);
             }
             else if (strcmp(str_temp, "QUERY") == 0)
             {
                 sscanf(server.vz[x].buffer, "%s %s %s %s\n", str_temp, dest, origin, content);
                 server.exptable[atoi(origin)] = atoi(server.vz[x].id);
-                int res = handle_get(dest, content, origin);
+                int res = handle_get(dest, content, origin, x);
                 if (res == 1)
                 {
                     sprintf(server.vz[x].buffer, "CONTENT %s %s %s\n", origin, dest, content);
-                    write(server.vz[x].fd, server.vz[x].buffer, MAX_BUFFER);
+                    write(server.vz[x].fd, server.vz[x].buffer, strlen(server.vz[x].buffer));
                 }
                 if (res == 2)
                 {
                     sprintf(server.vz[x].buffer, "NOCONTENT %s %s %s\n", origin, dest, content);
-                    write(server.vz[x].fd, server.vz[x].buffer, MAX_BUFFER);
+                    write(server.vz[x].fd, server.vz[x].buffer, strlen(server.vz[x].buffer));
                 }
             }
             else if (strcmp(str_temp, "NOCONTENT") == 0)
@@ -178,7 +180,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                         if (atoi(server.vz[i].id) == temp_id)
                         {
                             sprintf(server.vz[x].buffer, "NOCONTENT %s %s %s\n", origin, dest, content);
-                            write(server.vz[i].fd, server.vz[x].buffer, MAX_BUFFER);
+                            write(server.vz[i].fd, server.vz[x].buffer, strlen(server.vz[x].buffer));
                         }
                     }
                 }
@@ -197,7 +199,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                         if (atoi(server.vz[i].id) == temp_id)
                         {
                             sprintf(server.vz[x].buffer, "CONTENT %s %s %s\n", origin, dest, content);
-                            write(server.vz[i].fd, server.vz[x].buffer, MAX_BUFFER);
+                            write(server.vz[i].fd, server.vz[x].buffer, strlen(server.vz[x].buffer));
                         }
                     }
                 }
@@ -294,6 +296,7 @@ void leave(int x)
     }
     else
     {
+        fprintf(stdout, "node %s is alone in network %s\n", server.my_node.id, server.net);
         server.vz[x] = server.my_node;
         server.vz[x].active = 0;
     }
