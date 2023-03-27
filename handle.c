@@ -77,7 +77,7 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP,
     return 0;
 }
 
-void handle_leave(char *net, char *id, char *connect_ip, char *connect_port)
+void handle_leave(char *net, char *id, char *connect_ip, char *connect_port, int flag)
 {
     char message[13] = "", response[8] = "";
     for (int i = 0; i < MAX_NODES; i++)
@@ -96,10 +96,16 @@ void handle_leave(char *net, char *id, char *connect_ip, char *connect_port)
         }
     }
     handle_cr();
-    sprintf(message, "UNREG %s %s", net, id);
-    UDP_connection(message, response, sizeof(response), connect_ip, atoi(connect_port));
-    if (strcmp(response, "OKUNREG") == 0)
-        fprintf(stdout, "%s left network %s\n", server.my_node.id, server.net);
+
+    if (flag == 1)
+    {
+        sprintf(message, "UNREG %s %s", net, id);
+        UDP_connection(message, response, sizeof(response), connect_ip, atoi(connect_port));
+        if (strcmp(response, "OKUNREG") != 0)
+            fprintf(stdout, "node %s is not correctly unregistered in network %s\n", server.my_node.id, server.net);
+    }
+
+    fprintf(stdout, "%s left network %s\n", server.my_node.id, server.net);
 }
 
 int handle_create(char *name, int flag)

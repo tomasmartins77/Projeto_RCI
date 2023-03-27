@@ -63,4 +63,10 @@ void inicialize_nodes(node_t *);
 
 int check_input_format(char *, char *);
 
+int check_arguments(int, char **, char *, char *);
+
+int isValidIP(char *);
+
+int isValidPort(char *);
+
 #endif /* HEADER_H */

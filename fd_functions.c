@@ -5,12 +5,12 @@ extern server_node server;
 fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, char *connect_port)
 {
     char message[10] = "", arg1[9] = "", arg2[5] = "", bootid[7] = "", bootIP[16] = "", bootTCP[8] = "", buff[255] = "";
-    static int flag_join = 0, flag_create = 0;
+    static int flag_join = 0, flag_create = 0, flag_djoin = 0;
     int count = 0;
 
     fgets(buff, 255, stdin); // LE o que ta escrito
     sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
-    if (strcmp(message, "join") == 0 && flag_join == 0)
+    if (strcmp(message, "join") == 0 && flag_join == 0 && flag_djoin == 0)
     {
         if (check_input_format(buff, message) == 0)
         {
@@ -25,9 +25,9 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
             FD_SET(server.vz[0].fd, &rfds_list);
         flag_join = 1;
     }
-    else if (strcmp(message, "join") == 0 && flag_join == 1)
+    else if (strcmp(message, "join") == 0 && flag_join == 1 && flag_djoin == 0)
         fprintf(stdout, "node already created\n");
-    else if (strcmp(message, "djoin") == 0 && flag_join == 0)
+    else if (strcmp(message, "djoin") == 0 && flag_djoin == 0 && flag_join == 0)
     {
         if (check_input_format(buff, message) == 0)
         {
@@ -42,27 +42,32 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
             FD_SET(server.vz[0].fd, &rfds_list);
         flag_join = 1;
     }
-    else if (strcmp(message, "djoin") == 0 && flag_join == 1)
+    else if (strcmp(message, "djoin") == 0 && flag_djoin == 1 && flag_join == 0)
         fprintf(stdout, "node already created\n");
-    else if (strcmp(message, "leave") == 0 && flag_join == 1)
+    else if (strcmp(message, "leave") == 0 && (flag_join == 1 || flag_djoin == 1))
     {
+        if (flag_join == 1)
+            handle_leave(server.net, server.my_node.id, connect_ip, connect_port, 1);
+        else if (flag_djoin == 1)
+            handle_leave(server.net, server.my_node.id, server.vb.ip, server.vb.port, 0);
+
         flag_join = 0;
-        handle_leave(server.net, server.my_node.id, connect_ip, connect_port);
+        flag_djoin = 0;
     }
-    else if (strcmp(message, "leave") == 0 && flag_join == 0)
+    else if (strcmp(message, "leave") == 0 && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no node created\n");
-    else if (strcmp(message, "create") == 0 && flag_join == 1)
+    else if (strcmp(message, "create") == 0 && (flag_join == 1 || flag_djoin == 1))
         flag_create = handle_create(arg1, flag_create);
-    else if (strcmp(message, "create") == 0 && flag_join == 0)
+    else if (strcmp(message, "create") == 0 && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no file created\n");
-    else if (strcmp(message, "delete") == 0 && flag_create > 0)
+    else if (strcmp(message, "delete") == 0 && flag_create > 0 && (flag_join == 0 || flag_djoin == 0))
     {
         handle_delete(arg1);
         flag_create--;
     }
-    else if (strcmp(message, "delete") == 0 && flag_create == 0)
+    else if (strcmp(message, "delete") == 0 && flag_create == 0 && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no file to be deleted\n");
-    else if (strcmp(message, "get") == 0 && strcmp(arg1, server.my_node.id) != 0 && flag_join == 1)
+    else if (strcmp(message, "get") == 0 && strcmp(arg1, server.my_node.id) != 0 && (flag_join == 1 || flag_djoin == 1))
     {
         if (check_input_format(buff, message) == 0)
         {
@@ -71,35 +76,38 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
         }
         handle_get(arg1, arg2, server.my_node.id, -1);
     }
-    else if (strcmp(message, "get") == 0 && strcmp(arg1, server.my_node.id) == 0 && flag_join == 1)
+    else if (strcmp(message, "get") == 0 && strcmp(arg1, server.my_node.id) == 0 && (flag_join == 1 || flag_djoin == 1))
         fprintf(stdout, "cannot get file from yourself\n");
     else if (strcmp(message, "get") == 0 && flag_join == 0)
         fprintf(stdout, "no node created\n");
-    else if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && flag_join == 1)
+    else if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && (flag_join == 1 || flag_djoin == 1))
         handle_st();
-    else if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && flag_join == 0)
+    else if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no node created\n");
-    else if ((strcmp(message, "show names") == 0 || strcmp(message, "sn") == 0) && flag_join == 1)
+    else if ((strcmp(message, "show names") == 0 || strcmp(message, "sn") == 0) && (flag_join == 1 || flag_djoin == 1))
         handle_sn();
-    else if ((strcmp(message, "show names") == 0 || strcmp(message, "sn") == 0) && flag_join == 0)
+    else if ((strcmp(message, "show names") == 0 || strcmp(message, "sn") == 0) && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no node created\n");
-    else if ((strcmp(message, "show routing") == 0 || strcmp(message, "sr") == 0) && flag_join == 1)
+    else if ((strcmp(message, "show routing") == 0 || strcmp(message, "sr") == 0) && (flag_join == 1 || flag_djoin == 1))
         handle_sr(arg2);
-    else if ((strcmp(message, "show routing") == 0 || strcmp(message, "sr") == 0) && flag_join == 0)
+    else if ((strcmp(message, "show routing") == 0 || strcmp(message, "sr") == 0) && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no node created\n");
     else if (strcmp(message, "exit") == 0)
     {
         if (flag_join == 1)
-            handle_leave(server.net, server.my_node.id, connect_ip, connect_port);
+            handle_leave(server.net, server.my_node.id, connect_ip, connect_port, 1);
+        else if (flag_djoin == 1)
+            handle_leave(server.net, server.my_node.id, server.vb.ip, server.vb.port, 0);
+
         close(server.my_node.fd);
         fprintf(stdout, "exiting program\n");
         exit(1);
     }
     else if (strcmp(message, "clear") == 0)
         clear(arg1, connect_ip, connect_port);
-    else if ((strcmp(message, "clear route") == 0 || strcmp(message, "cr") == 0) && flag_join == 1)
+    else if ((strcmp(message, "clear route") == 0 || strcmp(message, "cr") == 0) && (flag_join == 1 || flag_djoin == 1))
         handle_cr();
-    else if ((strcmp(message, "clear route") == 0 || strcmp(message, "cr") == 0) && flag_join == 0)
+    else if ((strcmp(message, "clear route") == 0 || strcmp(message, "cr") == 0) && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no node created\n");
     else if (strcmp(message, "show") == 0)
         show(arg1, connect_ip, connect_port);
@@ -151,6 +159,8 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 server.vb = temp;
                 if (strcmp(server.vz[x].id, server.vb.id) == 0)
                     leave(x);
+                else
+                    fprintf(stdout, "my backup is node %s\n", server.vb.id);
             }
             else if (strcmp(str_temp, "QUERY") == 0)
             {
@@ -185,7 +195,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                     }
                 }
                 else
-                    fprintf(stdout, "name not available\n");
+                    fprintf(stdout, "name: %s not available\n", content);
             }
             else if (strcmp(str_temp, "CONTENT") == 0)
             {
@@ -204,7 +214,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                     }
                 }
                 else
-                    fprintf(stdout, "name is available\n");
+                    fprintf(stdout, "name: %s is available\n", content);
             }
             else if (strcmp(str_temp, "WITHDRAW") == 0)
             {
@@ -264,7 +274,7 @@ void leave(int x)
         server.vz[x] = server.vb;
         server.vz[x].active = 1;
         server.vz[x].fd = tcp_client(server.vb.ip, atoi(server.vb.port));
-        fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[x].id);
+        fprintf(stdout, "node %s is now connected to node %s\n", server.my_node.id, server.vz[x].id);
 
         sprintf(message, "NEW %s %s %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
         write(server.vz[x].fd, message, strlen(message));
@@ -283,7 +293,7 @@ void leave(int x)
     {
         server.vz[x] = server.vz[intr];
         server.vz[x].active = 1;
-        fprintf(stdout, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
+
         sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
         for (i = 1; i < MAX_NODES; i++)
         {
@@ -292,6 +302,7 @@ void leave(int x)
                 write(server.vz[i].fd, message, strlen(message));
             }
         }
+        fprintf(stdout, "choosing node %s as new anchor\n", server.vz[x].id);
         server.vz[intr].active = 0;
     }
     else

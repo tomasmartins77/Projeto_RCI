@@ -53,7 +53,7 @@ void show(char *net, char *connect_ip, char *connect_port)
  */
 int node_list(char *net, node_t *nodes, char *connect_ip, char *connect_port)
 {
-    char buff[2500] = "";
+    char buff[2600] = "";
     char node_msg[10] = "";
 
     /* Construct the message to request a list of nodes on the network */
@@ -224,7 +224,7 @@ void inicialize_nodes(node_t *nodes)
 }
 /**
  * Checks if the input string is in the correct format for the specified message
- * 
+ *
  * Parameters:
  *  input: the input string to be checked
  *  message: the message type to be checked for ("join", "djoin", "leave", "get")
@@ -234,122 +234,180 @@ void inicialize_nodes(node_t *nodes)
 
 int check_input_format(char *input, char *message)
 {
-    char num1[4], num2[3], num3[3], ip[16];
-    int num_dots = 0;
+    char num1[4], num2[3], num3[3], ip[16], port[6];
 
     if (strcmp(message, "get") != 0)
     {
         // Extract the first number
         if (sscanf(input + strlen(message) + 1, "%s", num1) != 1)
-        {
             return 0;
-        }
         // Check if the first number has exactly 3 digits
         if (strlen(num1) != 3)
-        {
             return 0;
-        }
         // Check if the first number is all digits
         for (int i = 0; i < strlen(num1); i++)
         {
             if (!isdigit(num1[i]))
-            {
                 return 0;
-            }
         }
         // Extract the second number
         if (sscanf(input + strlen(message) + 1 + strlen(num1) + 1, "%s", num2) != 1)
-        {
             return 0;
-        }
         // Check if the second number has exactly 2 digits
         if (strlen(num2) != 2)
-        {
             return 0;
-        }
         // Check if the second number is all digits
         for (int i = 0; i < strlen(num2); i++)
         {
             if (!isdigit(num2[i]))
-            {
                 return 0;
-            }
         }
         if (strcmp(message, "djoin") == 0)
         {
             // Extract the third number
             if (sscanf(input + strlen(message) + 1 + strlen(num1) + 1 + strlen(num2) + 1, "%s", num3) != 1)
-            {
                 return 0;
-            }
             // Check if the third number has exactly 2 digits
             if (strlen(num3) != 2)
-            {
                 return 0;
-            }
             // Check if the third number is all digits
             for (int i = 0; i < strlen(num3); i++)
             {
                 if (!isdigit(num3[i]))
-                {
                     return 0;
-                }
             }
             // Extract the IP address
             if (sscanf(input + strlen(message) + 1 + strlen(num1) + 1 + strlen(num2) + 1 + strlen(num3) + 1, "%15s", ip) != 1)
-            {
                 return 0;
-            }
             // Check if the IP address contains only digits, dots, and has at most 3 digits between each dot
-            char *tok;
-            tok = strtok(ip, ".");
-            while (tok != NULL)
-            {
-                num_dots++;
-                // Check if the token is all digits
-                for (int i = 0; i < strlen(tok); i++)
-                {
-                    if (!isdigit(tok[i]))
-                    {
-                        return 0;
-                    }
-                }
-                // Check if the token is between 0 and 255
-                int num = atoi(tok);
-                if (num < 0 || num > 255)
-                {
-                    return 0;
-                }
-                tok = strtok(NULL, ".");
-            }
-            num_dots--;
-            if (num_dots != 3)
-            {
+            if (!isValidIP(ip))
                 return 0;
-            }
+            // Extract the PORT number
+            if (sscanf(input + strlen(message) + 1 + strlen(num1) + 1 + strlen(num2) + 1 + strlen(num3) + 1 + strlen(ip) + 1, "%6s", port) != 1)
+                return 0;
+            // Check if the PORT number has at most 5 digits
+            if (!isValidPort(port))
+                return 0;
         }
     }
     else
     {
         // Extract the number
         if (sscanf(input + 4, "%s", num2) != 1)
-        {
             return 0;
-        }
         // Check if the number has exactly 2 digits
         if (strlen(num2) != 2)
-        {
             return 0;
-        }
         // Check if the number is all digits
         for (int i = 0; i < strlen(num2); i++)
         {
             if (!isdigit(num2[i]))
+                return 0;
+        }
+    }
+
+    return 1;
+}
+
+int check_arguments(int argc, char **argv, char *connect_ip, char *connect_port)
+{
+    char *ip1 = argv[1];
+    char *port1 = argv[2];
+
+    if (argc == 3 || argc == 5)
+    {
+        if (!isValidIP(ip1))
+        {
+            fprintf(stdout, "Invalid IP address.\n");
+            return 1;
+        }
+        if (!isValidPort(port1))
+        {
+            fprintf(stdout, "Invalid port number.\n");
+            return 1;
+        }
+        strcpy(connect_ip, SERVER_IP);
+        strcpy(connect_port, SERVER_PORT);
+    }
+    if (argc == 5)
+    {
+        char *ip2 = argv[3];
+        char *port2 = argv[4];
+        // validate inputs
+        if (!isValidIP(ip2))
+        {
+            fprintf(stdout, "Invalid IP address.\n");
+            return 1;
+        }
+        if (!isValidPort(port2))
+        {
+            fprintf(stdout, "Invalid port number.\n");
+            return 1;
+        }
+    }
+    else
+        return 1;
+
+    return 0;
+}
+
+int isValidIP(char *ip)
+{
+    char *tok;
+    char *ip_aux = strdup(ip);
+    if (ip_aux == NULL)
+        exit(1);
+
+    char *delete = ip_aux;
+
+    tok = strtok(ip_aux, ".");
+    int num_dots = 0;
+
+    while (tok != NULL)
+    {
+        num_dots++;
+        // Check if the token is all digits
+        for (int i = 0; i < strlen(tok); i++)
+        {
+            if (!isdigit(tok[i]))
             {
                 return 0;
             }
         }
+        // Check if the token is between 0 and 255
+        int num = atoi(tok);
+        if (num < 0 || num > 255)
+            return 0;
+        tok = strtok(NULL, ".");
     }
+    num_dots--;
+    if (num_dots != 3)
+        return 0;
+    free(delete);
+    return 1;
+}
+
+int isValidPort(char *port)
+{
+    int len = strlen(port);
+
+    // check length
+    if (len > 6)
+        return 0;
+
+    // check for non-numeric characters
+    for (int i = 0; i < len; i++)
+    {
+        if (!isdigit(port[i]))
+            return 0;
+    }
+
+    // convert port string to integer
+    int port_int = atoi(port);
+
+    // check if port is in valid range
+    if (port_int < 0 || port_int > 65535)
+        return 0;
 
     return 1;
 }

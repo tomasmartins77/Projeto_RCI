@@ -18,7 +18,7 @@
 #include "connections.h"
 #include "fd_functions.h"
 
-void handle_leave(char *, char *, char *, char *);
+void handle_leave(char *, char *, char *, char *, int);
 
 int handle_join(char *, char *, char *, char *);
 
