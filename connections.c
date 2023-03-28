@@ -166,20 +166,3 @@ int create_server(char *ip_address, int port)
     }
     return server_fd;
 }
-
-void server_creation()
-{
-    char buff[100] = "";
-    while (1)
-    {
-        server.my_node.fd = create_server(server.my_node.ip, atoi(server.my_node.port));
-        if (server.my_node.fd > 0)
-            break;
-
-        fprintf(stdout, "write in format: IP PORT\n-> ");
-        fgets(buff, sizeof(buff), stdin);
-        sscanf(buff, "%s %s", server.my_node.ip, server.my_node.port);
-    }
-
-    server.my_node.active = 1;
-}
