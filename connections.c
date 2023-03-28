@@ -1,6 +1,7 @@
 #include "connections.h"
 
 extern server_node server;
+
 /*
  *Function: UDP_server_message
  *Brief:
@@ -48,6 +49,7 @@ int UDP_server_message(char *message, char *response, int len, char *connect_ip,
 
     return 0;
 }
+
 /*
  *Function: UDP_connection
  *Brief:
@@ -73,6 +75,7 @@ void UDP_connection(char *message, char *response, int len, char *connect_ip, in
 
     return;
 }
+
 /*
  *Function: tcp_client
  *Brief:
@@ -115,6 +118,7 @@ int tcp_client(char *ip_address, int portno)
 
     return sockfd;
 }
+
 /*
  *Function: create_server
  *Brief:
@@ -161,4 +165,21 @@ int create_server(char *ip_address, int port)
         return -1;
     }
     return server_fd;
+}
+
+void server_creation()
+{
+    char buff[100] = "";
+    while (1)
+    {
+        server.my_node.fd = create_server(server.my_node.ip, atoi(server.my_node.port));
+        if (server.my_node.fd > 0)
+            break;
+
+        fprintf(stdout, "write in format: IP PORT\n-> ");
+        fgets(buff, sizeof(buff), stdin);
+        sscanf(buff, "%s %s", server.my_node.ip, server.my_node.port);
+    }
+
+    server.my_node.active = 1;
 }

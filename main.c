@@ -26,10 +26,10 @@ int main(int argc, char *argv[])
     srand(time(NULL));
     int keyfd = STDIN_FILENO, client_socket, i, max_fd;
     fd_set rfds_list, rfds;
-    server.my_node.active = 0;
     for (i = 0; i < MAX_NODES; i++)
     {
         server.vz[i].active = 0;
+        server.vz[i].bytes_received = 0;
         server.exptable[i] = -1;
     }
 
@@ -42,16 +42,15 @@ int main(int argc, char *argv[])
         exit(1);
     }
 
+    server_creation();
+
     memset(server.names, 0, sizeof(server.names));
-    strcpy(server.my_node.ip, argv[1]);
-    strcpy(server.my_node.port, argv[2]);
 
     while (1)
     {
-        FD_ZERO(&rfds_list);       // poem todos a 0
-        FD_SET(keyfd, &rfds_list); // adiciona o keyboard
-        if (server.my_node.active == 1)
-            FD_SET(server.my_node.fd, &rfds_list); // adiciona o server
+        FD_ZERO(&rfds_list);                   // poem todos a 0
+        FD_SET(keyfd, &rfds_list);             // adiciona o keyboard
+        FD_SET(server.my_node.fd, &rfds_list); // adiciona o server
         max_fd = max(keyfd, server.my_node.fd);
 
         for (i = 0; i < MAX_NODES; i++)
@@ -76,7 +75,7 @@ int main(int argc, char *argv[])
             {
                 rfds = handle_menu(rfds, argv[1], argv[2], connect_ip, connect_port);
             }
-            if (FD_ISSET(server.my_node.fd, &rfds) && server.my_node.active == 1)
+            if (FD_ISSET(server.my_node.fd, &rfds))
             {
                 if ((client_socket = accept(server.my_node.fd, (struct sockaddr *)&client_addr, &cli_addr_size)) < 0)
                 {

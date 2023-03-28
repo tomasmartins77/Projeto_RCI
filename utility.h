@@ -32,6 +32,8 @@ typedef struct node
     char port[6];
     int fd;
     int active;
+    char buffer[1000];
+    int bytes_received;
 } node_t;
 typedef struct server_node
 {
@@ -66,9 +68,5 @@ int check_arguments(int, char **, char *, char *);
 int isValidIP(char *);
 
 int isValidPort(char *);
-
-void write_message(int, char *);
-
-int server_creation();
 
 #endif /* HEADER_H */

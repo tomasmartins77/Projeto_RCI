@@ -22,18 +22,20 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
             }
 
             if (handle_djoin(net, id, nodes[int_connect].id, nodes[int_connect].ip, nodes[int_connect].port, connect_ip, connect_port) == 0)
+            {
+                fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[0].id);
                 break;
+            }
 
-            strcpy(nodes[int_connect].ip, "0");
+            strcpy(nodes[int_connect].ip, "\0");
             for (i = 0; i <= count; i++)
             {
-                if (strcmp(nodes[i].ip, "0") != 0)
+                if (strcmp(nodes[i].ip, "\0") != 0)
                     break;
             }
             if (i == count)
                 break;
         }
-        fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[0].id);
     }
     if (count == 0 || i == count)
     {
@@ -49,14 +51,16 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
 
 int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP, char *connect_ip, char *connect_port)
 {
-    char message[50] = "";
+    char message[MAX_BUFFER] = "";
     strcpy(server.my_node.id, id);
 
     if (strcmp(id, bootid) != 0)
     {
         if (strcmp(bootIP, server.my_node.ip) == 0 && strcmp(bootTCP, server.my_node.port) == 0)
             return -1;
+
         server.vz[0].fd = tcp_client(bootIP, atoi(bootTCP));
+
         if (server.vz[0].fd < 0)
             return -1;
 
@@ -95,9 +99,9 @@ void handle_leave(char *net, char *id, char *connect_ip, char *connect_port, int
             strcpy(server.vb.port, "\0");
         }
     }
+
     handle_cr();
-    close(server.my_node.fd);
-    server.my_node.active = 0;
+
     if (flag == 1)
     {
         sprintf(message, "UNREG %s %s", net, id);
@@ -107,6 +111,9 @@ void handle_leave(char *net, char *id, char *connect_ip, char *connect_port, int
     }
 
     fprintf(stdout, "%s left network %s\n", server.my_node.id, server.net);
+
+    strcpy(server.net, "\0");
+    strcpy(server.my_node.id, "\0");
 }
 
 int handle_create(char *name, int flag)
@@ -169,7 +176,7 @@ int handle_get(char *dest, char *name, char *origem, int x)
         }
         return flag;
     }
-    char buff[255] = "";
+    char buff[MAX_BUFFER] = "";
     int path = 0;
     int dest_int = atoi(dest);
 

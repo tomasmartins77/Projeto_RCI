@@ -25,4 +25,6 @@ int tcp_client(char *, int);
 
 int create_server(char *, int);
 
+void server_creation();
+
 #endif
