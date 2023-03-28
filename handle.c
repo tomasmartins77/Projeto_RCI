@@ -43,7 +43,7 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
     sprintf(message, "REG %s %s %s %s", net, id, server.my_node.ip, server.my_node.port);
     UDP_connection(message, response, sizeof(response), connect_ip, atoi(connect_port));
     if (strcmp(response, "OKREG") == 0)
-        fprintf(stdout, "node %s is correctly registered in network %s\n", server.my_node.id, server.net);
+        fprintf(stdout, "Node %s is correctly registered in network %s\n", server.my_node.id, server.net);
     return count;
 }
 
@@ -66,7 +66,7 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP,
         write(server.vz[0].fd, message, strlen(message));
     }
     else
-        fprintf(stdout, "node %s is the first node in network %s\n", server.my_node.id, server.net);
+        fprintf(stdout, "Node %s is the first node in network %s\n", server.my_node.id, server.net);
 
     strcpy(server.vz[0].id, bootid);
     strcpy(server.vz[0].ip, bootIP);
@@ -96,7 +96,8 @@ void handle_leave(char *net, char *id, char *connect_ip, char *connect_port, int
         }
     }
     handle_cr();
-
+    close(server.my_node.fd);
+    server.my_node.active = 0;
     if (flag == 1)
     {
         sprintf(message, "UNREG %s %s", net, id);

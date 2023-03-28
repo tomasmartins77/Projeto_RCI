@@ -314,7 +314,7 @@ int check_arguments(int argc, char **argv, char *connect_ip, char *connect_port)
     char *ip1 = argv[1];
     char *port1 = argv[2];
 
-    if (argc == 3 || argc == 5)
+    if (argc == 3)
     {
         if (!isValidIP(ip1))
         {
@@ -329,11 +329,21 @@ int check_arguments(int argc, char **argv, char *connect_ip, char *connect_port)
         strcpy(connect_ip, SERVER_IP);
         strcpy(connect_port, SERVER_PORT);
     }
-    if (argc == 5)
+    else if (argc == 5)
     {
         char *ip2 = argv[3];
         char *port2 = argv[4];
         // validate inputs
+        if (!isValidIP(ip1))
+        {
+            fprintf(stdout, "Invalid IP address.\n");
+            return 1;
+        }
+        if (!isValidPort(port1))
+        {
+            fprintf(stdout, "Invalid port number.\n");
+            return 1;
+        }
         if (!isValidIP(ip2))
         {
             fprintf(stdout, "Invalid IP address.\n");
@@ -344,6 +354,8 @@ int check_arguments(int argc, char **argv, char *connect_ip, char *connect_port)
             fprintf(stdout, "Invalid port number.\n");
             return 1;
         }
+        strcpy(connect_ip, argv[3]);
+        strcpy(connect_port, argv[4]);
     }
     else
         return 1;
@@ -409,5 +421,45 @@ int isValidPort(char *port)
     if (port_int < 0 || port_int > 65535)
         return 0;
 
+    return 1;
+}
+
+void write_message(int position, char *write_message)
+{
+    ssize_t nbytes, nleft, nwritten;
+    char *ptr = (char *)malloc(sizeof(char) * strlen(write_message));
+    strcpy(ptr, write_message);
+    nbytes = strlen(write_message);
+    nleft = nbytes;
+    while (nleft > 0)
+    {
+        nwritten = write(server.vz[position].fd, ptr, nleft);
+        if (nwritten <= 0)
+        {
+            fprintf(stdout, "Error writing to socket.\n");
+            exit(1);
+        }
+        nleft -= nwritten;
+        ptr += nwritten;
+    }
+    free(ptr);
+    return;
+}
+
+int server_creation()
+{
+    char buff[100] = "";
+    while (1)
+    {
+        server.my_node.fd = create_server(server.my_node.ip, atoi(server.my_node.port));
+        if (server.my_node.fd > 0)
+            break;
+
+        fprintf(stdout, "write in format: IP PORT\n-> ");
+        fgets(buff, sizeof(buff), stdin);
+        sscanf(buff, "%s %s", server.my_node.ip, server.my_node.port);
+    }
+
+    server.my_node.active = 1;
     return 1;
 }

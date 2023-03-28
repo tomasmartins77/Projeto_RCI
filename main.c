@@ -22,15 +22,14 @@ server_node server;
 
 int main(int argc, char *argv[])
 {
-    char connect_ip[16] = "", connect_port[6] = "", buff[100] = "";
+    char connect_ip[16] = "", connect_port[6] = "";
     srand(time(NULL));
     int keyfd = STDIN_FILENO, client_socket, i, max_fd;
     fd_set rfds_list, rfds;
-
+    server.my_node.active = 0;
     for (i = 0; i < MAX_NODES; i++)
     {
         server.vz[i].active = 0;
-        server.vz[i].bytes_recieved = 0;
         server.exptable[i] = -1;
     }
 
@@ -49,22 +48,12 @@ int main(int argc, char *argv[])
 
     while (1)
     {
-        server.my_node.fd = create_server(server.my_node.ip, atoi(server.my_node.port));
-        if (server.my_node.fd > 0)
-            break;
-        fprintf(stdout, "write in format: IP PORT\n-> ");
-        fgets(buff, sizeof(buff), stdin);
-        sscanf(buff, "%s %s", server.my_node.ip, server.my_node.port);
-    }
-
-    server.my_node.active = 1;
-
-    while (1)
-    {
-        FD_ZERO(&rfds_list);                   // poem todos a 0
-        FD_SET(keyfd, &rfds_list);             // adiciona o keyboard
-        FD_SET(server.my_node.fd, &rfds_list); // adiciona o server
+        FD_ZERO(&rfds_list);       // poem todos a 0
+        FD_SET(keyfd, &rfds_list); // adiciona o keyboard
+        if (server.my_node.active == 1)
+            FD_SET(server.my_node.fd, &rfds_list); // adiciona o server
         max_fd = max(keyfd, server.my_node.fd);
+
         for (i = 0; i < MAX_NODES; i++)
         {
             if (server.vz[i].active == 1)
@@ -87,7 +76,7 @@ int main(int argc, char *argv[])
             {
                 rfds = handle_menu(rfds, argv[1], argv[2], connect_ip, connect_port);
             }
-            if (FD_ISSET(server.my_node.fd, &rfds))
+            if (FD_ISSET(server.my_node.fd, &rfds) && server.my_node.active == 1)
             {
                 if ((client_socket = accept(server.my_node.fd, (struct sockaddr *)&client_addr, &cli_addr_size)) < 0)
                 {
