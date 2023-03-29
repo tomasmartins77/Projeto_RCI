@@ -9,12 +9,15 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
     int count = node_list(net, nodes, connect_ip, connect_port);
     int int_connect = 0, i = 0;
     char id_temp[3] = "", message[50] = "", response[6] = "";
-
+    printf("count: %d\n", count);
     if (count > 0)
     {
-        while (1)
+        while (i != count)
         {
             int_connect = rand() % count;
+            if (strcmp(nodes[int_connect].ip, "\0") == 0)
+                continue;
+            printf("%d\n", int_connect);
             while (verify_node(id, count, nodes) == 0)
             {
                 strcpy(id_temp, random_number(id));
@@ -28,13 +31,13 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
             }
 
             strcpy(nodes[int_connect].ip, "\0");
-            for (i = 0; i <= count; i++)
+            for (i = 0; i < count; i++)
             {
+                printf("%s   %d\n", nodes[i].ip, i);
+
                 if (strcmp(nodes[i].ip, "\0") != 0)
                     break;
             }
-            if (i == count)
-                break;
         }
     }
     if (count == 0 || i == count)

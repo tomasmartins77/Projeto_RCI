@@ -142,7 +142,7 @@ int verify_node(char *id, int count, node_t *nodes)
 {
     for (int i = 0; i < count; i++)
     {
-        if (strcmp(nodes[i].id, id) == 0 && strcmp(nodes[i].ip, "0") != 0)
+        if (strcmp(nodes[i].id, id) == 0)
             return 0;
     }
     return 1;
