@@ -9,7 +9,7 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
     int count = node_list(net, nodes, connect_ip, connect_port);
     int int_connect = 0, i = 0;
     char id_temp[3] = "", message[50] = "", response[6] = "";
-    printf("count: %d\n", count);
+
     if (count > 0)
     {
         while (i != count)
@@ -17,7 +17,7 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
             int_connect = rand() % count;
             if (strcmp(nodes[int_connect].ip, "\0") == 0)
                 continue;
-            printf("%d\n", int_connect);
+
             while (verify_node(id, count, nodes) == 0)
             {
                 strcpy(id_temp, random_number(id));
@@ -33,8 +33,6 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
             strcpy(nodes[int_connect].ip, "\0");
             for (i = 0; i < count; i++)
             {
-                printf("%s   %d\n", nodes[i].ip, i);
-
                 if (strcmp(nodes[i].ip, "\0") != 0)
                     break;
             }
@@ -70,7 +68,8 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP,
         server.vz[0].active = 1;
 
         sprintf(message, "NEW %s %s %s\n", id, server.my_node.ip, server.my_node.port);
-        write(server.vz[0].fd, message, strlen(message));
+        if (write(server.vz[0].fd, message, strlen(message)) == -1)
+            return -1;
     }
     else
         fprintf(stdout, "Node %s is the first node in network %s\n", server.my_node.id, server.net);
@@ -80,7 +79,6 @@ int handle_djoin(char *net, char *id, char *bootid, char *bootIP, char *bootTCP,
     strcpy(server.vz[0].port, bootTCP);
 
     server.vb = server.my_node;
-
     return 0;
 }
 
@@ -191,7 +189,11 @@ int handle_get(char *dest, char *name, char *origem, int x)
         {
             if (atoi(server.vz[i].id) == path)
             {
-                write(server.vz[i].fd, buff, strlen(buff));
+                if (write(server.vz[i].fd, buff, strlen(buff)) == -1)
+                {
+                    fprintf(stdout, "error writing to socket\n");
+                    return -1;
+                }
                 break;
             }
         }
@@ -204,7 +206,11 @@ int handle_get(char *dest, char *name, char *origem, int x)
             if (server.vz[i].active == 1 && i != x)
             {
                 server.exptable[atoi(server.vz[i].id)] = atoi(server.vz[i].id);
-                write(server.vz[i].fd, buff, strlen(buff));
+                if (write(server.vz[i].fd, buff, strlen(buff)) == -1)
+                {
+                    fprintf(stdout, "error writing to socket\n");
+                    return -1;
+                }
             }
         }
     }

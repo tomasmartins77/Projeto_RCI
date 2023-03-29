@@ -8,7 +8,11 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
     static int flag_join = 0, flag_create = 0, flag_djoin = 0;
     int count = 0;
 
-    fgets(buff, MAX_BUFFER, stdin); // LE o que ta escrito
+    if (fgets(buff, MAX_BUFFER, stdin) == NULL) // LE o que ta escrito
+    {
+        fprintf(stdout, "error reading from stdin\n");
+        return rfds_list;
+    }
     sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
     if (strcmp(message, "join") == 0 && flag_join == 0 && flag_djoin == 0)
     {
@@ -17,12 +21,11 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
             fprintf(stdout, "Invalid arguments\n");
             return rfds_list;
         }
-
         strcpy(server.net, arg1);
 
         count = handle_join(arg1, arg2, connect_ip, connect_port);
 
-        if (count > 0)
+        if (count > 0 && server.vz[0].active == 1)
             FD_SET(server.vz[0].fd, &rfds_list);
         flag_join = 1;
     }
@@ -35,7 +38,6 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
             fprintf(stdout, "Invalid arguments\n");
             return rfds_list;
         }
-
         strcpy(server.net, arg1);
 
         handle_djoin(arg1, arg2, bootid, bootIP, bootTCP, connect_ip, connect_port);
@@ -116,12 +118,13 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
         show(arg1, connect_ip, connect_port);
     else if (strcmp(message, "clr") == 0)
     {
-        system("clear");
+        if (system("clear") == -1)
+            fprintf(stdout, "error\n");
         fprintf(stdout, "id: %s   IP: %s   PORT: %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
     }
-
     else
         fprintf(stdout, "invalid command\n");
+
     return rfds_list;
 }
 
@@ -147,7 +150,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
 
     strcpy(aux, server.vz[x].buffer);
 
-    int i, save;
+    int i, save = 0;
     for (i = 0; i < strlen(aux); i++)
     {
         if (aux[i] == '\n')
@@ -176,7 +179,11 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 server.vz[x].active = 1;
 
                 sprintf(message, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
-                write(server.vz[x].fd, message, strlen(message));
+                if (write(server.vz[x].fd, message, strlen(message)) == -1)
+                {
+                    fprintf(stdout, "error writing to socket\n");
+                    return rfds_list;
+                }
 
                 fprintf(stdout, "node %s is connected to node %s\n", server.vz[x].id, server.my_node.id);
             }
@@ -201,12 +208,20 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 if (res == 1)
                 {
                     sprintf(message, "CONTENT %s %s %s\n", origin, dest, content);
-                    write(server.vz[x].fd, message, strlen(message));
+                    if (write(server.vz[x].fd, message, strlen(message)) == -1)
+                    {
+                        fprintf(stdout, "error writing to socket\n");
+                        return rfds_list;
+                    }
                 }
                 if (res == 2)
                 {
                     sprintf(message, "NOCONTENT %s %s %s\n", origin, dest, content);
-                    write(server.vz[x].fd, message, strlen(message));
+                    if (write(server.vz[x].fd, message, strlen(message)) == -1)
+                    {
+                        fprintf(stdout, "error writing to socket\n");
+                        return rfds_list;
+                    }
                 }
             }
             else if (strcmp(str_temp, "NOCONTENT") == 0)
@@ -223,7 +238,11 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                         if (atoi(server.vz[i].id) == temp_id)
                         {
                             sprintf(message, "NOCONTENT %s %s %s\n", origin, dest, content);
-                            write(server.vz[i].fd, message, strlen(message));
+                            if (write(server.vz[i].fd, message, strlen(message)) == -1)
+                            {
+                                fprintf(stdout, "error writing to socket\n");
+                                return rfds_list;
+                            }
                         }
                     }
                 }
@@ -244,7 +263,11 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                         if (atoi(server.vz[i].id) == temp_id)
                         {
                             sprintf(message, "CONTENT %s %s %s\n", origin, dest, content);
-                            write(server.vz[i].fd, message, strlen(message));
+                            if (write(server.vz[i].fd, message, strlen(message)) == -1)
+                            {
+                                fprintf(stdout, "error writing to socket\n");
+                                return rfds_list;
+                            }
                         }
                     }
                 }
@@ -291,7 +314,11 @@ void withdraw(int node_le, int x)
         if (server.vz[i].active == 1 && i != x)
         {
             sprintf(buff, "WITHDRAW %s\n", char_node_le);
-            write(server.vz[i].fd, buff, strlen(buff));
+            if (write(server.vz[i].fd, buff, strlen(buff)) == -1)
+            {
+                fprintf(stdout, "error writing to socket\n");
+                return;
+            }
         }
     }
 }
@@ -324,7 +351,11 @@ void leave(int x)
         fprintf(stdout, "node %s is now connected to node %s\n", server.my_node.id, server.vz[x].id);
 
         sprintf(message, "NEW %s %s %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
-        write(server.vz[x].fd, message, strlen(message));
+        if (write(server.vz[x].fd, message, strlen(message)) == -1)
+        {
+            fprintf(stdout, "error writing to socket\n");
+            return;
+        }
 
         sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
         // for loop a enviar EXTERN aos intr
@@ -332,7 +363,11 @@ void leave(int x)
         {
             if (server.vz[i].active == 1)
             {
-                write(server.vz[i].fd, message, strlen(message));
+                if (write(server.vz[i].fd, message, strlen(message)) == -1)
+                {
+                    fprintf(stdout, "error writing to socket\n");
+                    return;
+                }
             }
         }
     }
@@ -347,7 +382,11 @@ void leave(int x)
         {
             if (server.vz[i].active == 1)
             {
-                write(server.vz[i].fd, message, strlen(message));
+                if (write(server.vz[i].fd, message, strlen(message)) == -1)
+                {
+                    fprintf(stdout, "error writing to socket\n");
+                    return;
+                }
             }
         }
 

@@ -73,9 +73,7 @@ int main(int argc, char *argv[])
         for (int i = 0; i < ready; i++)
         {
             if (FD_ISSET(keyfd, &rfds))
-            {
                 rfds = handle_menu(rfds, argv[1], argv[2], connect_ip, connect_port);
-            }
             if (FD_ISSET(server.my_node.fd, &rfds))
             {
                 if ((client_socket = accept(server.my_node.fd, (struct sockaddr *)&client_addr, &cli_addr_size)) < 0)

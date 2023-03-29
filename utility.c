@@ -25,7 +25,7 @@ void clear(char *net, char *connect_ip, char *connect_port)
 /* This function is designed to request and display a list of nodes on a given network using UDP communication.*/
 void show(char *net, char *connect_ip, char *connect_port)
 {
-    char message[13] = "", buff[1024] = "";
+    char message[13] = "", buff[2600] = "";
 
     /* Construct the message to request a list of nodes on the network */
     sprintf(message, "NODES %s", net);
