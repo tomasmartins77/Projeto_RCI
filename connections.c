@@ -3,16 +3,16 @@
 extern server_node server;
 
 /*
- *Function: UDP_server_message
- *Brief:
+ * Function: UDP_server_message
+ * Brief:
  *   UDP server message function sends a message to a server and waits for a response.
- *Parameters:
+ * Parameters:
  *   message: pointer to the message to be sent to the server
  *   response: pointer to the buffer to store the response from the server
  *   len: length of the response buffer
  *   connect_ip: IP address of the server
  *   connect_port: port number of the server
- *Return Value:
+ * Return Value:
  *   0 on success
  *   -1 on error
  */
@@ -51,11 +51,11 @@ int UDP_server_message(char *message, char *response, int len, char *connect_ip,
 }
 
 /*
- *Function: UDP_connection
- *Brief:
+ * Function: UDP_connection
+ * Brief:
  *   UDP connection function sends a message to a server and waits for a response.
  *   If the first attempt fails, the function tries to connect to a default server.
- *Parameters:
+ * Parameters:
  *   message: pointer to the message to be sent to the server
  *   response: pointer to the buffer to store the response from the server
  *   len: length of the response buffer
@@ -77,13 +77,13 @@ void UDP_connection(char *message, char *response, int len, char *connect_ip, in
 }
 
 /*
- *Function: tcp_client
- *Brief:
+ * Function: tcp_client
+ * Brief:
  *    TCP client function creates a socket and connects to a server at the specified IP address and port number.
- *Parameters:
+ * Parameters:
  *   ip_address: IP address of the server
  *   portno: port number of the server
- *Return Value:
+ * Return Value:
  *   socket file descriptor on success
  *   -1 on error
  */
@@ -120,16 +120,16 @@ int tcp_client(char *ip_address, int portno)
 }
 
 /*
- *Function: create_server
- *Brief:
- *The create_server function creates a socket, binds it to the specified IP address and port number,
- *and listens for incoming connections from clients.
- *Parameters:
- *   ip_address: IP address of the server
- *   port: port number of the server
- *Return Value:
- *server file descriptor on success
- *-1 on error
+ * Function: create_server
+ * Brief:
+ *      The create_server function creates a socket, binds it to the specified IP address and port number,
+ *      and listens for incoming connections from clients.
+ * Parameters:
+ *      ip_address: IP address of the server
+ *      port: port number of the server
+ * Return Value:
+ *      server file descriptor on success
+ *      -1 on error
  */
 int create_server(char *ip_address, int port)
 {

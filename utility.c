@@ -1,6 +1,7 @@
 #include "utility.h"
 
 extern server_node server;
+
 /* This function is designed to unregister all nodes from a  given network using UDP communication */
 void clear(char *net, char *connect_ip, char *connect_port)
 {
@@ -127,16 +128,19 @@ int parse_nodes(char *nodes_str, node_t *nodes)
     free(delete);
     return node_count;
 }
+
 /*
  * This function takes a node ID, a count of nodes, and a list of nodes as input parameters.
  * It iterates through the list of nodes and checks if any node has a matching ID that is not associated with
  * the IP address "0". If a match is found, the function returns 0, indicating that the node is verified.
  * If no match is found, the function returns 1, indicating that the node is not verified.
  *
- * param id The node ID to verify
- * param count The total number of nodes in the list
- * param nodes A pointer to the first element of the list of nodes
- * return 0 if the node is verified, 1 otherwise
+ * parameters:
+ *      id The node ID to verify
+ *      count The total number of nodes in the list
+ *      nodes A pointer to the first element of the list of nodes
+ * returns:
+ *      0 if the node is verified, 1 otherwise
  */
 int verify_node(char *id, int count, node_t *nodes)
 {
@@ -148,23 +152,26 @@ int verify_node(char *id, int count, node_t *nodes)
     return 1;
 }
 /*
-
-*Generates a random integer between 0 and 99 and returns it as a formatted string
-*This function generates a random integer between 0 and 99 using the rand() function from the standard
-*C library. The resulting integer is then formatted as a string with two digits, using the sprintf()
-*function, and stored in a character array passed as a parameter. The function returns the character
-*array containing the formatted random number.
-*Parameters:
-    new_str  A pointer to a character array to store the formatted random number in
-*Returns:
-    A pointer to the character array containing the formatted random number
-*/
+ *
+ * Generates a random integer between 0 and 99 and returns it as a formatted string
+ * This function generates a random integer between 0 and 100 using the rand() function from the standard
+ * C library. The resulting integer is then formatted as a string with two digits, using the sprintf()
+ * function, and stored in a character array passed as a parameter. The function returns the character
+ * array containing the formatted random number.
+ *
+ * Parameters:
+ *   new_str  A pointer to a character array to store the formatted random number in
+ *
+ * Returns:
+ *  A pointer to the character array containing the formatted random number
+ */
 char *random_number(char *new_str)
 {
-    int number = rand() % 100;
+    int number = rand() % MAX_NODES;
     sprintf(new_str, "%02d", number);
     return new_str;
 }
+
 /*
  * timeout - Waits for a socket to become ready for reading for a specified amount of time
  *
@@ -180,7 +187,6 @@ char *random_number(char *new_str)
  * Returns:
  *     None
  */
-
 void timeout(int time, int socket)
 {
     // Set timeout value
@@ -194,12 +200,17 @@ void timeout(int time, int socket)
     FD_SET(socket, &rfds);
 
     // Wait for socket to become ready or timeout to expire
-    select(socket + 1, &rfds, NULL, NULL, &timeout);
-
+    int ready = select(socket + 1, &rfds, NULL, NULL, &timeout);
+    if (ready == -1)
+    {
+        perror("select() failed");
+        exit(1);
+    }
     // Check if socket is ready for reading
     if (FD_ISSET(socket, &rfds))
         return;
 }
+
 /*
  * initialize_nodes - Initializes an array of node_t structs with empty values
  *
@@ -222,16 +233,17 @@ void inicialize_nodes(node_t *nodes)
         strcpy(nodes[i].port, "\0");
     }
 }
-/**
+
+/*
  * Checks if the input string is in the correct format for the specified message
  *
  * Parameters:
  *  input: the input string to be checked
  *  message: the message type to be checked for ("join", "djoin", "leave", "get")
+ *
  * Return:
  *  int: 1 if the input is in the correct format, 0 otherwise
  */
-
 int check_input_format(char *input, char *message)
 {
     char num1[4], num2[3], num3[3], ip[16], port[6];
@@ -309,6 +321,18 @@ int check_input_format(char *input, char *message)
     return 1;
 }
 
+/*
+ * Checks if the input string is in the correct format for the specified message
+ *
+ * Parameters:
+ *      argc: the number of arguments
+ *      argv: the array of arguments
+ *      connect_ip: IP address
+ *      connect_port: port number
+ *
+ * Return:
+ *  int: 1 if the input is in the correct format, 0 otherwise
+ */
 int check_arguments(int argc, char **argv, char *connect_ip, char *connect_port)
 {
     char *ip1 = argv[1];
@@ -365,6 +389,15 @@ int check_arguments(int argc, char **argv, char *connect_ip, char *connect_port)
     return 0;
 }
 
+/*
+ * Checks if an ip is valid
+ *
+ * Parameters:
+ *      ip: IP address
+ *
+ * Return:
+ *  int: 1 if the input is in the correct format, 0 otherwise
+ */
 int isValidIP(char *ip)
 {
     char *tok;
@@ -401,6 +434,15 @@ int isValidIP(char *ip)
     return 1;
 }
 
+/*
+ * Checks if a port is valid
+ *
+ * Parameters:
+ *      port: port number
+ *
+ * Return:
+ *  int: 1 if the input is in the correct format, 0 otherwise
+ */
 int isValidPort(char *port)
 {
     int len = strlen(port);

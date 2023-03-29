@@ -2,6 +2,19 @@
 
 extern server_node server;
 
+/*
+ * Function: handle_menu
+ * Brief:
+ *   Function that handles the menu options.
+ * Parameters:
+ *   rfds_list: list of file descriptors
+ *   ip: IP address of the server
+ *   port: port number of the server
+ *   connect_ip: IP address of the server
+ *   connect_port: port number of the server
+ * Return Value:
+ *   rfds_list: list of file descriptors
+ */
 fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, char *connect_port)
 {
     char message[10] = "", arg1[9] = "", arg2[MAX_NAME] = "", bootid[7] = "", bootIP[16] = "", bootTCP[8] = "", buff[MAX_BUFFER] = "";
@@ -128,6 +141,14 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
     return rfds_list;
 }
 
+/*
+ * This function is used to read from a client socket and handle the messages received
+ * parameters:
+ *     rfds_list - the list of file descriptors
+ *     x - the index of the client in the vector
+ * return value:
+ *    rfds_list - the list of file descriptors
+ */
 fd_set client_fd_set(fd_set rfds_list, int x)
 {
     char str_temp[10] = "", origin[3] = "", dest[3] = "", content[100] = "", *token, message[MAX_BUFFER] = "", aux[MAX_BUFFER] = "";
@@ -298,20 +319,33 @@ fd_set client_fd_set(fd_set rfds_list, int x)
     return rfds_list;
 }
 
+/*
+ * This function is used to send withdraw messages to all nodes necessary
+ * when a node leaves the network.
+ * Parameters:
+ *      node_le: the node that is leaving the network
+ *      x: the index of the node that is leaving the network
+ */
 void withdraw(int node_le, int x)
 {
     char buff[MAX_BUFFER] = "";
     char char_node_le[3] = "";
 
+    // convert node_le to a 2-digit string
     sprintf(char_node_le, "%02d", node_le);
+
+    // mark node_le as withdrawn in the server's expadition table
     server.exptable[node_le] = -1;
 
+    // iterate through exptable to remove node_le from all entries
     for (int i = 0; i < MAX_NODES; i++)
     {
         if (server.exptable[i] == node_le)
         {
             server.exptable[i] = -1;
         }
+
+        // send WITHDRAW message to all active nodes except the leaving node
         if (server.vz[i].active == 1 && i != x)
         {
             sprintf(buff, "WITHDRAW %s\n", char_node_le);
@@ -324,33 +358,56 @@ void withdraw(int node_le, int x)
     }
 }
 
+/*
+ * This function is used when someone disconnects from you. It has four diferent cases, when the node that is leaving is the is an internal node,
+ * it simply closes the connection and sets the node as inactive. When the node that is leaving is the root node, is not an anchor and has an internal node,
+ * it sets the extern node as the backup node, connects to the new extern node and sends a message to the internal nodes to change the root node.
+ * When the node that is leaving is the root node, and does not have an internal node, sets an internal node has an anchor node and sends a message to the
+ * internal nodes to change the extern node.
+ *
+ * Parameters:
+ *      x: the index of the node that is leaving the network
+ */
 void leave(int x)
 {
     int intr = 0, i;
     char message[MAX_BUFFER] = "";
 
+    // Find the first active node in the network, starting from index 1.
+    // This is used later to determine a new anchor node, if necessary.
     for (intr = 1; intr < MAX_NODES; intr++)
     {
         if (server.vz[intr].active == 1)
             break;
     }
 
+    // Print a message to indicate that the node has left the network,
+    // and withdraw its ID and index from the routing table.
     fprintf(stdout, "%s has left network %s\n", server.vz[x].id, server.net);
     withdraw(atoi(server.vz[x].id), x);
 
+    // Close the socket associated with the leaving node's file descriptor.
     close(server.vz[x].fd);
 
+    // If the leaving node is not the first node (index 0), mark it as inactive.
     if (x > 0)
         server.vz[x].active = 0;
-    else if (strcmp(server.my_node.id, server.vb.id) != 0) // VE saiu e nao é ancora, tem VI
+    // If the leaving node is not an anchor node,
+    // replace the extern node with the backup node (vb), connect to it, and inform
+    // the other nodes in the network about the change.
+    else if (strcmp(server.my_node.id, server.vb.id) != 0)
     {
+        // Replace the leaving node with the backup node.
         server.vz[x] = server.vb;
         server.vz[x].active = 1;
 
+        // Connect to the new node.
         server.vz[x].fd = tcp_client(server.vb.ip, atoi(server.vb.port));
 
+        // Print a message to indicate that the connection was successful.
         fprintf(stdout, "node %s is now connected to node %s\n", server.my_node.id, server.vz[x].id);
 
+        // Inform the node about the new connection.
         sprintf(message, "NEW %s %s %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
         if (write(server.vz[x].fd, message, strlen(message)) == -1)
         {
@@ -358,8 +415,9 @@ void leave(int x)
             return;
         }
 
+        // Inform the other nodes in the network about the new connection.
         sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
-        // for loop a enviar EXTERN aos intr
+
         for (i = 1; i < MAX_NODES; i++)
         {
             if (server.vz[i].active == 1)
@@ -372,17 +430,25 @@ void leave(int x)
             }
         }
     }
+    // If there is at least one other active node in the network, and the leaving node
+    // is an anchor node, choose a new anchor node from the intern nodes and inform
+    // the other nodes in the network about the change.
     else if (intr != MAX_NODES)
     {
+        // Replace the leaving node with the first intern node in the network.
         server.vz[x] = server.vz[intr];
         server.vz[x].active = 1;
 
+        // Inform the other nodes in the network about the new connection.
         sprintf(message, "EXTERN %s %s %s\n", server.vz[x].id, server.vz[x].ip, server.vz[x].port);
 
+        // Loop through all nodes in the network
         for (i = 1; i < MAX_NODES; i++)
         {
+            // Check if the node is active
             if (server.vz[i].active == 1)
             {
+                // Send a message to the node indicating that the anchor node has changed
                 if (write(server.vz[i].fd, message, strlen(message)) == -1)
                 {
                     fprintf(stdout, "error writing to socket\n");
@@ -391,13 +457,19 @@ void leave(int x)
             }
         }
 
+        // Print a message indicating that a new anchor node has been chosen
         fprintf(stdout, "choosing node %s as new anchor\n", server.vz[x].id);
+
+        // Set the previous anchor node to inactive
         server.vz[intr].active = 0;
     }
+    // If the node is alone in the network
     else
     {
+        // Print a message indicating that the node is alone in the network
         fprintf(stdout, "node %s is alone in network %s\n", server.my_node.id, server.net);
 
+        // Set the node as the only active node in the network
         server.vz[x] = server.my_node;
         server.vz[x].active = 0;
     }
