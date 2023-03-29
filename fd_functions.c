@@ -281,11 +281,12 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             }
             else
             {
-                printf("error: %s\n", server.vz[x].id);
+                fprintf(stdout, "error: %s\n", server.vz[x].id);
                 memset(server.vz[x].buffer, 0, MAX_BUFFER);
                 server.vz[x].bytes_received = 0;
 
                 leave(x);
+                break;
             }
 
             token = strtok(NULL, "\n");
