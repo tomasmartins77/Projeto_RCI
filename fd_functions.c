@@ -195,6 +195,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             {
                 sscanf(token, "%s %s %s %s\n", str_temp, dest, origin, content);
 
+                server.exptable[atoi(server.vz[x].id)] = atoi(server.vz[x].id);
                 server.exptable[atoi(origin)] = atoi(server.vz[x].id);
                 int res = handle_get(dest, content, origin, x);
                 if (res == 1)
@@ -212,6 +213,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             {
                 sscanf(token, "%s %s %s %s\n", str_temp, origin, dest, content);
 
+                server.exptable[atoi(server.vz[x].id)] = atoi(server.vz[x].id);
                 server.exptable[atoi(dest)] = atoi(server.vz[x].id);
                 if (strcmp(origin, server.my_node.id) != 0)
                 {
@@ -232,6 +234,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             {
                 sscanf(token, "%s %s %s %s\n", str_temp, origin, dest, content);
 
+                server.exptable[atoi(server.vz[x].id)] = atoi(server.vz[x].id);
                 server.exptable[atoi(dest)] = atoi(server.vz[x].id);
                 if (strcmp(origin, server.my_node.id) != 0)
                 {

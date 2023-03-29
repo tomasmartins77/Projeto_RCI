@@ -200,6 +200,7 @@ int handle_get(char *dest, char *name, char *origem, int x)
         {
             if (server.vz[i].active == 1 && i != x)
             {
+                server.exptable[atoi(server.vz[i].id)] = atoi(server.vz[i].id);
                 write(server.vz[i].fd, buff, strlen(buff));
             }
         }
