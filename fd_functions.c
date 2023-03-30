@@ -56,7 +56,10 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
         handle_djoin(arg1, arg2, bootid, bootIP, bootTCP, connect_ip, connect_port);
 
         if (strcmp(arg2, bootid) != 0)
+        {
             FD_SET(server.vz[0].fd, &rfds_list);
+            fprintf(stdout, "node %s is connected to node %s\n", server.my_node.id, server.vz[0].id);
+        }
         flag_djoin = 1;
     }
     else if (strcmp(message, "djoin") == 0 && flag_djoin == 1 && flag_join == 0)
