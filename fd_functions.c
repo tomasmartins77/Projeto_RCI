@@ -21,40 +21,52 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
     static int flag_join = 0, flag_create = 0, flag_djoin = 0;
     int count = 0;
 
-    if (fgets(buff, MAX_BUFFER, stdin) == NULL) // LE o que ta escrito
+    if (fgets(buff, MAX_BUFFER, stdin) == NULL) // read input from stdin
     {
         fprintf(stdout, "error reading from stdin\n");
         return rfds_list;
     }
+
+    // parse input into command and arguments
     sscanf(buff, "%s %s %s %s %s %s", message, arg1, arg2, bootid, bootIP, bootTCP);
+
+    // handle "join" command
     if (strcmp(message, "join") == 0 && flag_join == 0 && flag_djoin == 0)
     {
+        // check if the input has the correct format
         if (check_input_format(buff, message) == 0)
         {
             fprintf(stdout, "Invalid arguments\n");
             return rfds_list;
         }
-        strcpy(server.net, arg1);
 
+        // set network and handle join
+        strcpy(server.net, arg1);
         count = handle_join(arg1, arg2, connect_ip, connect_port);
 
+        // add the socket to the fd set if the join was successful
         if (count > 0 && server.vz[0].active == 1)
             FD_SET(server.vz[0].fd, &rfds_list);
         flag_join = 1;
     }
+    // handle "join" command when the node has already been created
     else if (strcmp(message, "join") == 0 && flag_join == 1 && flag_djoin == 0)
         fprintf(stdout, "node already created\n");
+    // handle "djoin" command
     else if (strcmp(message, "djoin") == 0 && flag_djoin == 0 && flag_join == 0)
     {
+        // check if the input has the correct format
         if (check_input_format(buff, message) == 0)
         {
             fprintf(stdout, "Invalid arguments\n");
             return rfds_list;
         }
-        strcpy(server.net, arg1);
 
+        // set network and handle djoin
+        strcpy(server.net, arg1);
         handle_djoin(arg1, arg2, bootid, bootIP, bootTCP, connect_ip, connect_port);
 
+        // add the socket to the fd set if the djoin was successful
         if (strcmp(arg2, bootid) != 0)
         {
             FD_SET(server.vz[0].fd, &rfds_list);
@@ -62,10 +74,13 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
         }
         flag_djoin = 1;
     }
+    // handle "djoin" command when the node has already been created
     else if (strcmp(message, "djoin") == 0 && flag_djoin == 1 && flag_join == 0)
         fprintf(stdout, "node already created\n");
+    // handle "leave" command
     else if (strcmp(message, "leave") == 0 && (flag_join == 1 || flag_djoin == 1))
     {
+        // checks if the node was created with "join" or "djoin"
         if (flag_join == 1)
             handle_leave(server.net, server.my_node.id, connect_ip, connect_port, 1);
         else if (flag_djoin == 1)
@@ -76,10 +91,12 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
     }
     else if (strcmp(message, "leave") == 0 && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no node created\n");
+    // handle "create" command
     else if (strcmp(message, "create") == 0 && (flag_join == 1 || flag_djoin == 1))
         flag_create = handle_create(arg1, flag_create);
     else if (strcmp(message, "create") == 0 && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no file created\n");
+    // handle "delete" command
     else if (strcmp(message, "delete") == 0 && flag_create > 0 && (flag_join == 0 || flag_djoin == 0))
     {
         handle_delete(arg1);
@@ -87,8 +104,10 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
     }
     else if (strcmp(message, "delete") == 0 && flag_create == 0 && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no file to be deleted\n");
+    // handle "get" command
     else if (strcmp(message, "get") == 0 && strcmp(arg1, server.my_node.id) != 0 && (flag_join == 1 || flag_djoin == 1))
     {
+        // check if the input has the correct format
         if (check_input_format(buff, message) == 0)
         {
             fprintf(stdout, "Invalid arguments\n");
@@ -97,24 +116,30 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
 
         handle_get(arg1, arg2, server.my_node.id, -1);
     }
+    // if you try to get a file from yourself
     else if (strcmp(message, "get") == 0 && strcmp(arg1, server.my_node.id) == 0 && (flag_join == 1 || flag_djoin == 1))
         fprintf(stdout, "cannot get file from yourself\n");
     else if (strcmp(message, "get") == 0 && flag_join == 0)
         fprintf(stdout, "no node created\n");
+    // handle "show topology" command
     else if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && (flag_join == 1 || flag_djoin == 1))
         handle_st();
     else if (((strcmp(message, "show") == 0 && strcmp(arg1, "topology") == 0) || strcmp(message, "st") == 0) && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no node created\n");
+    // handle "show names" command
     else if ((strcmp(message, "show names") == 0 || strcmp(message, "sn") == 0) && (flag_join == 1 || flag_djoin == 1))
         handle_sn();
     else if ((strcmp(message, "show names") == 0 || strcmp(message, "sn") == 0) && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no node created\n");
+    // handle "show routing" command
     else if ((strcmp(message, "show routing") == 0 || strcmp(message, "sr") == 0) && (flag_join == 1 || flag_djoin == 1))
         handle_sr(arg2);
     else if ((strcmp(message, "show routing") == 0 || strcmp(message, "sr") == 0) && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no node created\n");
+    // handle "exit" command
     else if (strcmp(message, "exit") == 0)
     {
+        // checks if the node was created with "join" or "djoin" and if you havent left the network already
         if (flag_join == 1)
             handle_leave(server.net, server.my_node.id, connect_ip, connect_port, 1);
         else if (flag_djoin == 1)
@@ -124,14 +149,18 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
         fprintf(stdout, "exiting program\n");
         exit(1);
     }
+    // handle "clear" command that clear all nodes from a network
     else if (strcmp(message, "clear") == 0)
         clear(arg1, connect_ip, connect_port);
+    // handle "clear route" command
     else if ((strcmp(message, "clear route") == 0 || strcmp(message, "cr") == 0) && (flag_join == 1 || flag_djoin == 1))
         handle_cr();
     else if ((strcmp(message, "clear route") == 0 || strcmp(message, "cr") == 0) && (flag_join == 0 || flag_djoin == 0))
         fprintf(stdout, "no node created\n");
+    // handle "show" command that shows the nodes of a network
     else if (strcmp(message, "show") == 0)
         show(arg1, connect_ip, connect_port);
+    // handle "clr" command that clears the screen
     else if (strcmp(message, "clr") == 0)
     {
         if (system("clear") == -1)
@@ -139,13 +168,15 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
         fprintf(stdout, "id: %s   IP: %s   PORT: %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
     }
     else
-        fprintf(stdout, "invalid command\n");
+        fprintf(stdout, "invalid command\n"); // invalid command, try again
 
     return rfds_list;
 }
 
 /*
- * This function is used to read from a client socket and handle the messages received
+ * This function is used to read from a client socket and handle the messages received, using strtok and buffers for each
+ * client to handle multiple messages at the same time or incomplete messages.
+ *
  * parameters:
  *     rfds_list - the list of file descriptors
  *     x - the index of the client in the vector
@@ -154,11 +185,15 @@ fd_set handle_menu(fd_set rfds_list, char *ip, char *port, char *connect_ip, cha
  */
 fd_set client_fd_set(fd_set rfds_list, int x)
 {
+    // Initialize variables
     char str_temp[10] = "", origin[3] = "", dest[3] = "", content[100] = "", *token, message[MAX_BUFFER] = "", aux[MAX_BUFFER] = "";
     node_t temp = {};
     int num_bytes = 0, len = 0;
 
+    // Read incoming data from the client
     num_bytes = read(server.vz[x].fd, server.vz[x].buffer + server.vz[x].bytes_received, MAX_BUFFER - server.vz[x].bytes_received);
+
+    // Check if there was an error reading from the client
     if (num_bytes == -1)
     {
         fprintf(stdout, "error reading from socket\n");
@@ -167,14 +202,21 @@ fd_set client_fd_set(fd_set rfds_list, int x)
         leave(x);
         return rfds_list;
     }
+
+    // Check if the client has disconnected
     if (num_bytes == 0)
     {
+        fprintf(stdout, "Client %s disconnected, handling situation...\n", server.vz[x].id);
+        memset(server.vz[x].buffer, 0, MAX_BUFFER);
+        server.vz[x].bytes_received = 0;
         leave(x);
         return rfds_list;
     }
 
+    // Copy the data from the client's buffer to a temporary buffer
     strcpy(aux, server.vz[x].buffer);
 
+    // Find the last newline character in the temporary buffer and replace it with a null character to terminate a full message
     int i, save = 0;
     for (i = 0; i < strlen(aux); i++)
     {
@@ -183,26 +225,35 @@ fd_set client_fd_set(fd_set rfds_list, int x)
     }
     aux[save + 1] = '\0';
 
+    // Update the number of bytes received from the client
     server.vz[x].bytes_received += num_bytes;
 
+    // If there is at least one newline character in the temporary buffer
     if (strchr(aux, '\n') != NULL)
     {
+        // Tokenize the temporary buffer by newline character
         token = strtok(aux, "\n");
 
+        // Process each token
         len = strlen(token);
         while (token != NULL)
         {
+            // Parse the first word in the token
             sscanf(token, "%s", str_temp);
 
+            // If the first word is "NEW"
             if (strcmp(str_temp, "NEW") == 0)
             {
+                // Parse the rest of the token as a new node
                 sscanf(token, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
 
+                // Update the client's information in the server's data structure
                 strcpy(server.vz[x].id, temp.id);
                 strcpy(server.vz[x].ip, temp.ip);
                 strcpy(server.vz[x].port, temp.port);
                 server.vz[x].active = 1;
 
+                // Send a message to the client with the server's information
                 sprintf(message, "EXTERN %s %s %s\n", server.vz[0].id, server.vz[0].ip, server.vz[0].port);
                 if (write(server.vz[x].fd, message, strlen(message)) == -1)
                 {
@@ -214,21 +265,33 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             }
             else if (strcmp(str_temp, "EXTERN") == 0)
             {
+                // parse the EXTERN message and update server's backup information
                 sscanf(token, "%s %s %s %s\n", str_temp, temp.id, temp.ip, temp.port);
-
                 server.vb = temp;
 
+                // check if the extern node needs to leave due to being also the backup node
                 if (strcmp(server.vz[x].id, server.vb.id) == 0)
+                {
+                    memset(server.vz[x].buffer, 0, MAX_BUFFER);
+                    server.vz[x].bytes_received = 0;
                     leave(x);
+                }
                 else
+                    // print the new backup node ID
                     fprintf(stdout, "my backup is node %s\n", server.vb.id);
             }
             else if (strcmp(str_temp, "QUERY") == 0)
             {
+                // parse the QUERY message and handle the query
                 sscanf(token, "%s %s %s %s\n", str_temp, dest, origin, content);
 
+                // update server's expected table
                 server.exptable[atoi(origin)] = atoi(server.vz[x].id);
+
+                // handle the query and store the result in res
                 int res = handle_get(dest, content, origin, x);
+
+                // if the query was successful, send a CONTENT message
                 if (res == 1)
                 {
                     sprintf(message, "CONTENT %s %s %s\n", origin, dest, content);
@@ -238,6 +301,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                         return rfds_list;
                     }
                 }
+                // if the query failed, send a NOCONTENT message
                 if (res == 2)
                 {
                     sprintf(message, "NOCONTENT %s %s %s\n", origin, dest, content);
@@ -250,9 +314,11 @@ fd_set client_fd_set(fd_set rfds_list, int x)
             }
             else if (strcmp(str_temp, "NOCONTENT") == 0)
             {
+                // parse the NOCONTENT message and update server's expedition table
                 sscanf(token, "%s %s %s %s\n", str_temp, origin, dest, content);
-
                 server.exptable[atoi(dest)] = atoi(server.vz[x].id);
+
+                // if the message is not from the current node, forward the message to the appropriate node
                 if (strcmp(origin, server.my_node.id) != 0)
                 {
                     int temp_id = server.exptable[atoi(origin)];
@@ -270,13 +336,18 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                     }
                 }
                 else
+                    // print an error message if the requested name is not available
                     fprintf(stdout, "name: %s not available\n", content);
             }
             else if (strcmp(str_temp, "CONTENT") == 0)
             {
+                // Extract the message parameters
                 sscanf(token, "%s %s %s %s\n", str_temp, origin, dest, content);
 
+                // Update the exptable
                 server.exptable[atoi(dest)] = atoi(server.vz[x].id);
+
+                // Forward the message to the appropriate node
                 if (strcmp(origin, server.my_node.id) != 0)
                 {
                     int temp_id = server.exptable[atoi(origin)];
@@ -284,6 +355,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                     {
                         if (atoi(server.vz[i].id) == temp_id)
                         {
+                            // Construct the message and send it to the appropriate node
                             sprintf(message, "CONTENT %s %s %s\n", origin, dest, content);
                             if (write(server.vz[i].fd, message, strlen(message)) == -1)
                             {
@@ -294,29 +366,33 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                     }
                 }
                 else
+                {
+                    // Log a message indicating that the name is available
                     fprintf(stdout, "name: %s is available\n", content);
+                }
             }
             else if (strcmp(str_temp, "WITHDRAW") == 0)
             {
+                // Extract the destination node ID and start the withdrawal process
                 sscanf(token, "%s %s\n", str_temp, dest);
                 withdraw(atoi(dest), x);
             }
             else
             {
-                fprintf(stdout, "error: %s\n", server.vz[x].id);
+                // Disconnect the sender and log an error message
+                fprintf(stdout, "Node %s sent an incorrect message, disconnecting from that node because it might be spam\n", server.vz[x].id);
                 memset(server.vz[x].buffer, 0, MAX_BUFFER);
                 server.vz[x].bytes_received = 0;
-
                 leave(x);
                 break;
             }
-
+            // Move the buffer pointer to the next message and update the bytes_received variable
             token = strtok(NULL, "\n");
-
             memmove(server.vz[x].buffer, server.vz[x].buffer + len + 1, server.vz[x].bytes_received);
             server.vz[x].bytes_received -= len + 1;
         }
     }
+    // Return the updated rfds_list
     return rfds_list;
 }
 
