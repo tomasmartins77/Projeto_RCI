@@ -27,22 +27,22 @@
 
 typedef struct node
 {
-    char id[3];
-    char ip[16];
-    char port[6];
-    int fd;
-    int active;
-    char buffer[1000];
-    int bytes_received;
+    char id[3];              // node id
+    char ip[16];             // ip address
+    char port[6];            // port number
+    int fd;                  // file descriptor of that node
+    int active;              // 0 -> inactive, 1 -> active node
+    char buffer[MAX_BUFFER]; // buffer to store the data received
+    int bytes_received;      // number of bytes received to the buffer so far
 } node_t;
 typedef struct server_node
 {
-    struct node vb;
-    struct node vz[MAX_NODES];
-    struct node my_node;
-    char names[MAX_NODES][MAX_NAME];
-    char net[4];
-    int exptable[MAX_NODES];
+    struct node vb;                  // backup
+    struct node vz[MAX_NODES];       // vz[0] -> extern node, all others -> intern nodes
+    struct node my_node;             // my node's info
+    char names[MAX_NODES][MAX_NAME]; // names created by the server
+    char net[4];                     // network connected to
+    int exptable[MAX_NODES];         // expedition table
 } server_node;
 
 void clear(char *, char *, char *);
