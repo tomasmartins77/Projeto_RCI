@@ -353,8 +353,6 @@ int handle_get(char *dest, char *name, char *origin, int x)
         {
             if (server.vz[i].active == 1 && i != x)
             {
-                // Add an entry to the forwarding table for each active node that receives the message.
-                server.exptable[atoi(server.vz[i].id)] = atoi(server.vz[i].id);
                 // Send the message to the active node.
                 if (write(server.vz[i].fd, buff, strlen(buff)) == -1)
                 {

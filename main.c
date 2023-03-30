@@ -43,7 +43,9 @@ int main(int argc, char *argv[])
         fprintf(stdout, "Exiting...\n");
         exit(1);
     }
+
     server.my_node.fd = create_server(server.my_node.ip, atoi(server.my_node.port));
+
     server.my_node.active = 1;
     memset(server.names, 0, sizeof(server.names));
 

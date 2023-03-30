@@ -338,6 +338,9 @@ int check_arguments(int argc, char **argv, char *connect_ip, char *connect_port)
     char *ip1 = argv[1];
     char *port1 = argv[2];
 
+    strcpy(server.my_node.ip, ip1);
+    strcpy(server.my_node.port, port1);
+
     if (argc == 3)
     {
         if (!isValidIP(ip1))
@@ -350,8 +353,6 @@ int check_arguments(int argc, char **argv, char *connect_ip, char *connect_port)
             fprintf(stdout, "Invalid port number.\n");
             return 1;
         }
-        strcpy(server.my_node.ip, ip1);
-        strcpy(server.my_node.port, port1);
         strcpy(connect_ip, SERVER_IP);
         strcpy(connect_port, SERVER_PORT);
     }
