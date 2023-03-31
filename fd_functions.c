@@ -468,7 +468,11 @@ void leave(int x)
 
     // If the leaving node is not the first node (index 0), mark it as inactive.
     if (x > 0)
+    {
+        memset(server.vz[x].buffer, 0, MAX_BUFFER);
+        server.vz[x].bytes_received = 0;
         server.vz[x].active = 0;
+    }
     // If the leaving node is not an anchor node,
     // replace the extern node with the backup node (vb), connect to it, and inform
     // the other nodes in the network about the change.
@@ -477,7 +481,8 @@ void leave(int x)
         // Replace the leaving node with the backup node.
         server.vz[x] = server.vb;
         server.vz[x].active = 1;
-
+        memset(server.vz[x].buffer, 0, MAX_BUFFER);
+        server.vz[x].bytes_received = 0;
         // Connect to the new node.
         server.vz[x].fd = tcp_client(server.vb.ip, atoi(server.vb.port));
 
@@ -539,6 +544,8 @@ void leave(int x)
 
         // Set the previous anchor node to inactive
         server.vz[intr].active = 0;
+        memset(server.vz[intr].buffer, 0, MAX_BUFFER);
+        server.vz[intr].bytes_received = 0;
     }
     // If the node is alone in the network
     else
@@ -549,5 +556,7 @@ void leave(int x)
         // Set the node as the only active node in the network
         server.vz[x] = server.my_node;
         server.vz[x].active = 0;
+        memset(server.vz[x].buffer, 0, MAX_BUFFER);
+        server.vz[x].bytes_received = 0;
     }
 }
