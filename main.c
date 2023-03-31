@@ -25,8 +25,9 @@ int main(int argc, char *argv[])
     // Declare and initialize some variables
     char connect_ip[16] = "", connect_port[6] = "";
     srand(time(NULL));
-    int keyfd = STDIN_FILENO, client_socket, i, max_fd;
+    int keyfd = STDIN_FILENO, client_socket, i, max_fd = 0;
     fd_set rfds_list, rfds;
+
     for (i = 0; i < MAX_NODES; i++)
     {
         server.vz[i].active = 0;
@@ -43,9 +44,8 @@ int main(int argc, char *argv[])
         fprintf(stdout, "Exiting...\n");
         exit(1);
     }
-
+    // Initialize the server
     server.my_node.fd = create_server(server.my_node.ip, atoi(server.my_node.port));
-
     server.my_node.active = 1;
     memset(server.names, 0, sizeof(server.names));
 

@@ -33,7 +33,7 @@ void show(char *net, char *connect_ip, char *connect_port)
     /* Send the message to the specified IP address and port using UDP */
     UDP_connection(message, buff, sizeof(buff), connect_ip, atoi(connect_port));
     /* Print the response, which should contain a list of nodes on the network */
-    printf("%s", buff);
+    fprintf(stdout, "%s", buff);
 }
 
 /*

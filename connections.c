@@ -138,14 +138,14 @@ int create_server(char *ip_address, int port)
 
     if ((server_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1)
     {
-        fprintf(stdout, "socket error, pls choose a new parameters\n");
+        fprintf(stdout, "socket error\n");
         return -1;
     }
     int opt = 1;
 
     if (setsockopt(server_fd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == -1)
     {
-        fprintf(stdout, "setsockopt error, pls choose a new parameters\n");
+        fprintf(stdout, "setsockopt error\n");
         return -1;
     }
 
@@ -155,13 +155,13 @@ int create_server(char *ip_address, int port)
 
     if (bind(server_fd, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1)
     {
-        fprintf(stdout, "bind error, pls choose a new parameters\n");
+        fprintf(stdout, "bind error\n");
         return -1;
     }
 
     if (listen(server_fd, MAX_NODES) == -1)
     {
-        fprintf(stdout, "listen error, pls choose a new parameters\n");
+        fprintf(stdout, "listen error\n");
         return -1;
     }
     return server_fd;

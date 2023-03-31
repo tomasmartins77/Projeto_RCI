@@ -193,18 +193,8 @@ fd_set client_fd_set(fd_set rfds_list, int x)
     // Read incoming data from the client
     num_bytes = read(server.vz[x].fd, server.vz[x].buffer + server.vz[x].bytes_received, MAX_BUFFER - server.vz[x].bytes_received);
 
-    // Check if there was an error reading from the client
-    if (num_bytes == -1)
-    {
-        fprintf(stdout, "error reading from socket\n");
-        memset(server.vz[x].buffer, 0, MAX_BUFFER);
-        server.vz[x].bytes_received = 0;
-        leave(x);
-        return rfds_list;
-    }
-
-    // Check if the client has disconnected
-    if (num_bytes == 0)
+    // Check if there was an error reading from the client or if the client disconnected
+    if (num_bytes == -1 || num_bytes == 0)
     {
         fprintf(stdout, "Client %s disconnected, handling situation...\n", server.vz[x].id);
         memset(server.vz[x].buffer, 0, MAX_BUFFER);
@@ -261,7 +251,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                     return rfds_list;
                 }
 
-                fprintf(stdout, "node %s is connected to node %s\n", server.vz[x].id, server.my_node.id);
+                fprintf(stdout, "Node %s is connected to node %s\n", server.vz[x].id, server.my_node.id);
             }
             else if (strcmp(str_temp, "EXTERN") == 0)
             {
@@ -278,7 +268,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 }
                 else
                     // print the new backup node ID
-                    fprintf(stdout, "my backup is node %s\n", server.vb.id);
+                    fprintf(stdout, "My backup is node %s\n", server.vb.id);
             }
             else if (strcmp(str_temp, "QUERY") == 0)
             {
@@ -337,7 +327,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 }
                 else
                     // print an error message if the requested name is not available
-                    fprintf(stdout, "name: %s not available\n", content);
+                    fprintf(stdout, "Name: %s not available\n", content);
             }
             else if (strcmp(str_temp, "CONTENT") == 0)
             {
@@ -368,7 +358,7 @@ fd_set client_fd_set(fd_set rfds_list, int x)
                 else
                 {
                     // Log a message indicating that the name is available
-                    fprintf(stdout, "name: %s is available\n", content);
+                    fprintf(stdout, "Name: %s is available\n", content);
                 }
             }
             else if (strcmp(str_temp, "WITHDRAW") == 0)
@@ -403,21 +393,21 @@ fd_set client_fd_set(fd_set rfds_list, int x)
  *      node_le: the node that is leaving the network
  *      x: the index of the node that is leaving the network
  */
-void withdraw(int node_le, int x)
+void withdraw(int node, int x)
 {
     char buff[MAX_BUFFER] = "";
-    char char_node_le[3] = "";
+    char char_node[3] = "";
 
     // convert node_le to a 2-digit string
-    sprintf(char_node_le, "%02d", node_le);
+    sprintf(char_node, "%02d", node);
 
     // mark node_le as withdrawn in the server's expadition table
-    server.exptable[node_le] = -1;
+    server.exptable[node] = -1;
 
     // iterate through exptable to remove node_le from all entries
     for (int i = 0; i < MAX_NODES; i++)
     {
-        if (server.exptable[i] == node_le)
+        if (server.exptable[i] == node)
         {
             server.exptable[i] = -1;
         }
@@ -425,7 +415,7 @@ void withdraw(int node_le, int x)
         // send WITHDRAW message to all active nodes except the leaving node
         if (server.vz[i].active == 1 && i != x)
         {
-            sprintf(buff, "WITHDRAW %s\n", char_node_le);
+            sprintf(buff, "WITHDRAW %s\n", char_node);
             if (write(server.vz[i].fd, buff, strlen(buff)) == -1)
             {
                 fprintf(stdout, "error writing to socket\n");
@@ -487,7 +477,7 @@ void leave(int x)
         server.vz[x].fd = tcp_client(server.vb.ip, atoi(server.vb.port));
 
         // Print a message to indicate that the connection was successful.
-        fprintf(stdout, "node %s is now connected to node %s\n", server.my_node.id, server.vz[x].id);
+        fprintf(stdout, "Node %s is now connected to node %s\n", server.my_node.id, server.vz[x].id);
 
         // Inform the node about the new connection.
         sprintf(message, "NEW %s %s %s\n", server.my_node.id, server.my_node.ip, server.my_node.port);
@@ -540,7 +530,7 @@ void leave(int x)
         }
 
         // Print a message indicating that a new anchor node has been chosen
-        fprintf(stdout, "choosing node %s as new anchor\n", server.vz[x].id);
+        fprintf(stdout, "Choosing node %s as new anchor\n", server.vz[x].id);
 
         // Set the previous anchor node to inactive
         server.vz[intr].active = 0;
@@ -551,7 +541,7 @@ void leave(int x)
     else
     {
         // Print a message indicating that the node is alone in the network
-        fprintf(stdout, "node %s is alone in network %s\n", server.my_node.id, server.net);
+        fprintf(stdout, "Node %s is alone in network %s\n", server.my_node.id, server.net);
 
         // Set the node as the only active node in the network
         server.vz[x] = server.my_node;
