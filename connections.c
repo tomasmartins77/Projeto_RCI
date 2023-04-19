@@ -36,15 +36,16 @@ int UDP_server_message(char *message, char *response, int len, char *connect_ip,
         fprintf(stdout, "sendto error, couldn't connect to node server\n");
         return -1;
     }
-    timeout(2, sockfd);
-    int n = recvfrom(sockfd, response, len, 0, NULL, NULL);
-    if (n < 0)
+    if (timeout(10, sockfd) == 1)
     {
-        fprintf(stdout, "recvfrom error, couldn't connect to node server\n");
-        return -1;
+        int n = recvfrom(sockfd, response, len, 0, NULL, NULL);
+        if (n < 0)
+        {
+            fprintf(stdout, "recvfrom error, couldn't connect to node server\n");
+            return -1;
+        }
+        response[n] = '\0';
     }
-
-    response[n] = '\0';
     close(sockfd);
 
     return 0;

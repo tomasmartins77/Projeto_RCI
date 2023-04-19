@@ -26,7 +26,8 @@ int handle_join(char *net, char *id, char *connect_ip, char *connect_port)
 
     // See how many nodes are in the network
     int count = node_list(net, nodes, connect_ip, connect_port);
-
+    if (count == -1)
+        return 0;
     // Declare local variables
     int int_connect = 0, i = 0;
     char id_temp[3] = "", message[50] = "", response[6] = "";

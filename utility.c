@@ -61,7 +61,8 @@ int node_list(char *net, node_t *nodes, char *connect_ip, char *connect_port)
     sprintf(node_msg, "NODES %s", net);
     /* Send the message to the specified IP address and port using UDP */
     UDP_connection(node_msg, buff, sizeof(buff), connect_ip, atoi(connect_port));
-
+    if (strlen(buff) == 0)
+        return -1;
     /* Parse the list of nodes from the response and store them in the `nodes` array */
     return parse_nodes(buff, nodes);
 }
@@ -185,9 +186,9 @@ char *random_number(char *new_str)
  *     socket: The file descriptor of the socket to wait for
  *
  * Returns:
- *     None
+ *     1 if the socket is ready for reading, 0 otherwise
  */
-void timeout(int time, int socket)
+int timeout(int time, int socket)
 {
     // Set timeout value
     struct timeval timeout;
@@ -204,11 +205,14 @@ void timeout(int time, int socket)
     if (ready == -1)
     {
         perror("select() failed");
-        exit(1);
+        return 0;
     }
     // Check if socket is ready for reading
     if (FD_ISSET(socket, &rfds))
-        return;
+        return 1; // socket is ready
+
+    fprintf(stderr, "Timeout expired, ignoring message...\n");
+    return 0; // socket is not ready, UDP server did not respond
 }
 
 /*

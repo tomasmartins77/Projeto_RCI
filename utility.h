@@ -57,7 +57,7 @@ int verify_node(char *, int, node_t *);
 
 char *random_number(char *);
 
-void timeout(int, int);
+int timeout(int, int);
 
 void inicialize_nodes(node_t *);
 
